@@ -37,10 +37,10 @@ import { resolveAgentRuntimeKind } from './runtime-config.js';
 import { adaptClaudeMcpToolsToPi } from './runtime/pi/pi-tools.js';
 import { PiRuntimeAdapter } from './runtime/pi/pi-runtime.js';
 import { runPiQueryAttempt } from './runtime/pi/pi-runner.js';
+import { createIncidentTools } from './incident-tools.js';
 
 const WORKSPACE_GROUP =
-  process.env.MINICLAW_WORKSPACE_GROUP ||
-  '/workspace/group';
+  process.env.MINICLAW_WORKSPACE_GROUP || '/workspace/group';
 const WORKSPACE_IPC =
   process.env.MINICLAW_WORKSPACE_IPC ||
   process.env.MINICLAW_WORKSPACE_IPC ||
@@ -324,104 +324,112 @@ async function runTurn(
     .filter(Boolean)
     .join('\n\n');
   const tracker = new IpcTurnDeliveryTracker(initialMessages);
-  const customTools = adaptClaudeMcpToolsToPi(createMcpTools(ctx), {
-    namespace: 'mcp__miniclaw',
-  });
-  const provider = resolveClaudeProviderRuntime(process.env);
-  const runtime = new PiRuntimeAdapter();
-  activeInputTurnId =
-    latestIpcDeliveryId(initialMessages) || input.turnId || generateTurnId();
-  ctx.currentInputTurnId = activeInputTurnId;
-  let firstWakeAcknowledgementStarted = false;
-  const result = await runPiQueryAttempt({
-    runtime,
-    sessionOptions: {
-      cwd: WORKSPACE_GROUP,
-      sessionDir: path.join(
-        process.env.CLAUDE_CONFIG_DIR || path.join(WORKSPACE_GROUP, '.pi'),
-        'sessions',
-      ),
-      sessionId: input.sessionId,
-      model: provider.model || undefined,
-      systemPrompt: buildSystemPrompt(input, ctx),
-      allowedTools: DEFAULT_ALLOWED_TOOLS,
-      customTools,
-      provider: {
-        endpointKind: provider.endpointKind,
-        baseUrl: process.env.ANTHROPIC_BASE_URL,
-        apiKey:
-          process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN,
+  const incident = await createIncidentTools(WORKSPACE_GROUP);
+  try {
+    const customTools = adaptClaudeMcpToolsToPi(
+      [...createMcpTools(ctx), ...incident.tools],
+      { namespace: 'mcp__miniclaw' },
+    );
+    const provider = resolveClaudeProviderRuntime(process.env);
+    const runtime = new PiRuntimeAdapter();
+    activeInputTurnId =
+      latestIpcDeliveryId(initialMessages) || input.turnId || generateTurnId();
+    ctx.currentInputTurnId = activeInputTurnId;
+    let firstWakeAcknowledgementStarted = false;
+    const result = await runPiQueryAttempt({
+      runtime,
+      sessionOptions: {
+        cwd: WORKSPACE_GROUP,
+        sessionDir: path.join(
+          process.env.CLAUDE_CONFIG_DIR || path.join(WORKSPACE_GROUP, '.pi'),
+          'sessions',
+        ),
+        sessionId: input.sessionId,
+        model: provider.model || undefined,
+        systemPrompt: [buildSystemPrompt(input, ctx), incident.prompt]
+          .filter(Boolean)
+          .join('\n\n'),
+        allowedTools: DEFAULT_ALLOWED_TOOLS,
+        customTools,
+        provider: {
+          endpointKind: provider.endpointKind,
+          baseUrl: process.env.ANTHROPIC_BASE_URL,
+          apiKey:
+            process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN,
+        },
+        skillPaths: [
+          path.join(process.env.CLAUDE_CONFIG_DIR || '', 'skills'),
+          path.join(WORKSPACE_GROUP, '.claude', 'skills'),
+        ].filter((entry) => entry && fs.existsSync(entry)),
+        // The historical Claude SDK auto-compact knobs are advisory under Pi:
+        // the product always keeps compaction enabled and Pi decides its own
+        // reserve-based threshold. An explicit runtime-level disable remains
+        // expressible through the runtime contract.
+        autoCompactEnabled: true,
       },
-      skillPaths: [
-        path.join(process.env.CLAUDE_CONFIG_DIR || '', 'skills'),
-        path.join(WORKSPACE_GROUP, '.claude', 'skills'),
-      ].filter((entry) => entry && fs.existsSync(entry)),
-      // The historical Claude SDK auto-compact knobs are advisory under Pi:
-      // the product always keeps compaction enabled and Pi decides its own
-      // reserve-based threshold. An explicit runtime-level disable remains
-      // expressible through the runtime contract.
-      autoCompactEnabled: true,
-    },
-    prompt: turnPrompt,
-    images,
-    containerInput: input,
-    tracker,
-    emit: (output) => {
-      if (
-        !firstWakeAcknowledgementStarted &&
-        owner.result?.firstWake === true &&
-        output.streamEvent?.eventType === 'text_delta'
-      ) {
-        const leaseToken = owner.result.projection.onboarding.leaseToken;
-        firstWakeAcknowledgementStarted = true;
+      prompt: turnPrompt,
+      images,
+      containerInput: input,
+      tracker,
+      emit: (output) => {
         if (
-          typeof leaseToken === 'number' &&
-          Number.isInteger(leaseToken) &&
-          leaseToken > 0
+          !firstWakeAcknowledgementStarted &&
+          owner.result?.firstWake === true &&
+          output.streamEvent?.eventType === 'text_delta'
         ) {
-          void acknowledgeMiniclawOwnerProfileFirstWake(
-            ctx,
-            leaseToken,
-            activeInputTurnId || input.turnId || generateTurnId(),
-          ).catch(() => undefined);
+          const leaseToken = owner.result.projection.onboarding.leaseToken;
+          firstWakeAcknowledgementStarted = true;
+          if (
+            typeof leaseToken === 'number' &&
+            Number.isInteger(leaseToken) &&
+            leaseToken > 0
+          ) {
+            void acknowledgeMiniclawOwnerProfileFirstWake(
+              ctx,
+              leaseToken,
+              activeInputTurnId || input.turnId || generateTurnId(),
+            ).catch(() => undefined);
+          }
         }
-      }
-      if (input.interactionMode === 'proactive' && output.result) {
-        writeOutput({
-          ...output,
-          result: null,
-          proactiveFinalCandidate: output.result,
-        });
-      } else {
-        writeOutput(output);
-      }
-    },
-    log,
-    drainInput,
-    shouldClose: () =>
-      consumeSentinel(CLOSE_SENTINEL) || consumeSentinel(DRAIN_SENTINEL),
-    shouldInterrupt: () => consumeSentinel(INTERRUPT_SENTINEL),
-    acceptIpcMessagesDuringQuery: true,
-    onSessionId: (sessionId) => {
-      input.sessionId = sessionId;
-      latestSessionId = sessionId;
-      ctx.currentSessionId = sessionId;
-    },
-    onTurnActivated: (messages) => {
-      const message = latestIpcInputMessage(messages);
-      activeInputTurnId =
-        latestIpcDeliveryId(messages) || input.turnId || generateTurnId();
-      applyTurnContext(input, ctx, message);
-    },
-    onTurnCompleted: () => {
-      input.turnId = generateTurnId();
-    },
-  });
-  return {
-    closed: result.closedDuringQuery,
-    interrupted: result.interruptedDuringQuery,
-    pending: result.pipedMessagesDuringQuery,
-  };
+        if (input.interactionMode === 'proactive' && output.result) {
+          writeOutput({
+            ...output,
+            result: null,
+            proactiveFinalCandidate: output.result,
+          });
+        } else {
+          writeOutput(output);
+        }
+      },
+      log,
+      drainInput,
+      shouldClose: () =>
+        consumeSentinel(CLOSE_SENTINEL) || consumeSentinel(DRAIN_SENTINEL),
+      shouldInterrupt: () => consumeSentinel(INTERRUPT_SENTINEL),
+      acceptIpcMessagesDuringQuery: true,
+      onSessionId: (sessionId) => {
+        input.sessionId = sessionId;
+        latestSessionId = sessionId;
+        ctx.currentSessionId = sessionId;
+      },
+      onTurnActivated: (messages) => {
+        const message = latestIpcInputMessage(messages);
+        activeInputTurnId =
+          latestIpcDeliveryId(messages) || input.turnId || generateTurnId();
+        applyTurnContext(input, ctx, message);
+      },
+      onTurnCompleted: () => {
+        input.turnId = generateTurnId();
+      },
+    });
+    return {
+      closed: result.closedDuringQuery,
+      interrupted: result.interruptedDuringQuery,
+      pending: result.pipedMessagesDuringQuery,
+    };
+  } finally {
+    incident.close();
+  }
 }
 
 async function main(): Promise<void> {
