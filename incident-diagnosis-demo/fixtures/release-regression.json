@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "data_mode": "synthetic_fixture",
+  "scope": {
+    "service": "checkout-api",
+    "namespace": "demo",
+    "start": "2026-10-15T10:00:00Z",
+    "end": "2026-10-15T10:15:00Z"
+  },
+  "alert": "10:10 UTC checkout-api 5xx rate exceeded 10%.",
+  "sources": {
+    "metrics": [
+      {
+        "evidence_id": "REL-M1",
+        "timestamp": "2026-10-15T10:04:00Z",
+        "http_5xx_ratio": 0.002,
+        "p95_ms": 180,
+        "db_pool_wait_ms": 4
+      },
+      {
+        "evidence_id": "REL-M2",
+        "timestamp": "2026-10-15T10:10:00Z",
+        "http_5xx_ratio": 0.18,
+        "p95_ms": 2400,
+        "db_pool_wait_ms": 1800
+      }
+    ],
+    "logs": [
+      {
+        "evidence_id": "REL-L1",
+        "timestamp": "2026-10-15T10:08:00Z",
+        "level": "ERROR",
+        "message": "DB_POOL_TIMEOUT waiting for a connection",
+        "version": "v1.8.0"
+      },
+      {
+        "evidence_id": "REL-L2",
+        "timestamp": "2026-10-15T10:09:00Z",
+        "level": "ERROR",
+        "message": "checkout request returned HTTP 503 after DB_POOL_TIMEOUT",
+        "version": "v1.8.0"
+      }
+    ],
+    "deployments": [
+      {
+        "evidence_id": "REL-D1",
+        "timestamp": "2026-10-15T10:05:00Z",
+        "previous_version": "v1.7.3",
+        "version": "v1.8.0",
+        "change": {
+          "DB_POOL_MAX": {
+            "before": 30,
+            "after": 3
+          }
+        }
+      }
+    ]
+  }
+}

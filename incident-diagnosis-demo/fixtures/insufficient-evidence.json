@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "data_mode": "synthetic_fixture",
+  "scope": {
+    "service": "checkout-api",
+    "namespace": "demo",
+    "start": "2026-10-15T10:00:00Z",
+    "end": "2026-10-15T10:15:00Z"
+  },
+  "alert": "10:10 UTC checkout-api 5xx rate exceeded 10%; log collector is unavailable.",
+  "sources": {
+    "metrics": [
+      {
+        "evidence_id": "GAP-M1",
+        "timestamp": "2026-10-15T10:10:00Z",
+        "http_5xx_ratio": 0.17,
+        "p95_ms": 2300
+      }
+    ],
+    "logs": null,
+    "deployments": null
+  }
+}
