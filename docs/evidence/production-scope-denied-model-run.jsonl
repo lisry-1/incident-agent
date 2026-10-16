@@ -1,0 +1,1 @@
+{"schema_version":1,"run_id":"5c3e65ce-a707-4fc4-870b-19d135a8f33a","sequence":1,"recorded_at":"2026-10-16T16:59:51.550Z","data_mode":"synthetic_fixture","type":"permission","attempt":1,"decision":"deny","tool_executed":false,"code":"SCOPE_DENIED","message":"Case, service and namespace are pinned for this run."}
