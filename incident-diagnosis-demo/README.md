@@ -1,106 +1,120 @@
-# 故障诊断项目 v3：接入 Miniclaw 的工具注册入口
+# 故障诊断演示：运行与验证
 
-v3 增加 Host 模式下的可选工具注册：工作区配置启用后，Pi 会获得 `mcp__miniclaw__incident_query` 工具，其执行函数经过 IncidentHarness。附带源码补丁和不调用模型的适配器测试。先完成这一节，后面的独立演示仍然保留。
+本目录提供合成故障数据、查询工具、IncidentHarness 和测试。当前分支已包含 Runtime 接入代码，使用当前分支时无需再次应用 integration/ 中的历史补丁。
 
-## 安装 v3 注册补丁
+## 运行方式
 
-适用基线：Miniclaw `e1ebc699ab96544a032eb09abd4fb0ee5e3a1251`，以及在此基础上仅添加本演示目录的本地分支。补丁修改 `container/agent-runner/src/pi-index.ts`，新增 `container/agent-runner/src/incident-tools.ts`。应用前有 Git 检查点，`git apply` 会检查上下文，不会强行覆盖不匹配的代码。提示无法应用时停止并保留报错，不要强制应用。
+从仓库根目录运行。已验证环境为 WSL2 Ubuntu、Node.js 24，以及已安装的根目录、web、container/agent-runner 三组 npm 依赖。首次安装参见根目录的上游安装说明；原生依赖编译需要 Python、make 和 C/C++ 编译器。
 
-把 incident-diagnosis-demo-v3.zip 下载到 Windows Downloads，然后在项目根目录的 Ubuntu 终端依次运行：
+### 无模型检查
 
 ```bash
-cd ~/agent-projects/incident-agent
-python3 -m zipfile -e /mnt/c/Users/ASUS/Downloads/incident-diagnosis-demo-v3.zip .
-git apply incident-diagnosis-demo/integration/miniclaw-incident-tools.patch
+node --test incident-diagnosis-demo/tests/*.test.mjs
 npm --prefix container/agent-runner run build
 node incident-diagnosis-demo/scripts/runtime-smoke.mjs
 ```
 
-不要重复应用同一补丁。如果你修改过演示目录，请解压前备份。依赖使用此前 make install 已安装的 agent-runner 依赖，不增加依赖或修改 lockfile。
+查询与 Harness 测试共 21 项；适配器检查共 9 项。适配器检查直接调用实际 Pi 工具执行函数，使用临时工作区，不发起模型请求。
 
-成功输出 `mode: runtime_adapter_smoke_test`、`checks_passed: 9`、`llm_called: false`。测试实际调用编译后的工具注册模块和上游 Pi 适配器，验证返回证据、越界拦截、重复失败熔断、落盘和释放。使用临时工作区，结束后清理；不会改变你的 Home 配置，不会访问模型 API。它还没有验证模型推理、Pi 会话完整生命周期或网页聊天。
-
-## 工作区启用方式（完成上述测试后再做）
-
-默认不注册这个工具。Host 工作区目录下必须有 `incident-demo.config.json`，内容仅含一个受支持的 case_id，例如：
-
-```json
-{"case_id":"release-regression"}
-```
-
-你的 Home 路径是 `data/groups/main/incident-demo.config.json`。该工作区产生的审计记录保存在 `data/groups/main/incident-audit/`。配置仅选择固定合成用例，不接受模块路径、审计路径或命令。启用后重启服务，发起新会话，让工具列表和提示词一起重新加载。其他工作区不自动启用，容器模式暂不支持。
-
-注册后的查询参数仍为 case/source/service/namespace/start/end，允许的 source 是 metrics/logs/deployments。范围在每次 runTurn 创建工具时固定，计数在同一 runTurn 内共享，结束或出错时 finally 关闭记录文件。Pi 的参数准备阶段可能先拒绝不符合 schema 的请求，这些请求不会到达本工具的审计入口。
-
-Miniclaw 的其他工具仍然开放，这只是领域查询入口的约束，不是全局只读模式、容器沙箱或完整安全门禁。本目录 SKILL.md 中的旧 CLI 流程是独立演示；验证受控调用时应使用注册的 incident_query，而不是直接从 bash 调用旧 CLI。
-
-## v2 独立权限演示（已完成可跳过）
-
-本版新增独立 IncidentHarness：执行前校验工具和参数；拒绝越界与修改操作；相同查询连续失败两次后停止重复执行；将权限决定和结果追加到 JSONL。全部使用模拟数据，无需 API Key 或 npm install。
-
-## 现在只做这一步
-
-把 incident-diagnosis-demo-v2.zip 下载到 Windows Downloads，然后在 Ubuntu（提示符是 lisry@...，不是 PowerShell 的 PS C:）执行：
-
-```bash
-cd ~/agent-projects/incident-agent
-python3 -m zipfile -e /mnt/c/Users/ASUS/Downloads/incident-diagnosis-demo-v2.zip .
-node incident-diagnosis-demo/scripts/incident-harness.mjs demo
-```
-
-会更新之前的 incident-diagnosis-demo 文件夹。若你自己修改过其中代码，请先复制备份再解压。Windows 用户目录或下载文件名若不同，请相应调整路径。
-
-预期七步：
-
-| 步骤 | 结果 | 实际查询是否执行 |
-| --- | --- | --- |
-| 正常指标查询 | ok | 是 |
-| 越界查询 production | SCOPE_DENIED | 否 |
-| 请求重启服务 | TOOL_NOT_ALLOWED | 否 |
-| 缺失日志：第 1 次 | unavailable | 是 |
-| 缺失日志：第 2 次 | unavailable | 是 |
-| 缺失日志：第 3 次 | CIRCUIT_OPEN | 否 |
-| 再次查询可用指标 | ok | 是 |
-
-输出中的 audit_file 是你电脑上的记录文件。每次演示在 runs/ 下生成一个新文件；7 条权限决定、4 条实际查询结果，共 11 行。runs/ 已加入本目录的 .gitignore。
-
-## 文件分工
-
-| 文件 | 职责 |
-| --- | --- |
-| scripts/incident-cli.mjs | 查指标、日志、发布记录，校验参数并返回证据来源 |
-| scripts/incident-harness.mjs | 权限检查、失败计数、调用预算、JSONL 记录 |
-| fixtures/*.json | 发布回归、上游超时、证据不足三组人工样例 |
-| tests/*.test.mjs | 查询与控制逻辑的程序测试 |
-| SKILL.md | 后续给模型使用的领域操作流程 |
-| references/review-rubric.md | 模型接入后的报告验收标准 |
-
-## 已实现的规则
-
-只注册 incident.query，不执行任意 shell 或业务修改命令。每次运行固定 case、service、namespace 和时间范围；拒绝额外参数，允许范围内的时间子区间，采用 [start, end)。先通过检查，再调用查询函数。
-
-失败按规范化的完整查询参数计数，调整字段顺序不能绕过。unavailable 和 error 计为失败，empty 不计为失败。不同参数独立计数，但所有请求（包括被拒绝的）共同受到默认 12 次尝试的限制。新运行有独立计数，尚未实现跨重启恢复。
-
-权限决定先同步写入 JSONL，再执行查询；写入失败会抛错，查询不会继续。查询结果也同步追加。如果此时进程崩溃，可能只有允许记录、没有结果；允许记录不代表查询已成功。
-
-## 运行测试
-
-```bash
-node --test incident-diagnosis-demo/tests/*.test.mjs
-```
-
-原版证据查询演示仍可运行：
+独立演示仍可运行：
 
 ```bash
 node incident-diagnosis-demo/scripts/incident-cli.mjs demo
+node incident-diagnosis-demo/scripts/incident-harness.mjs demo
 ```
 
-## 独立演示的边界
+两者均输出 llm_called=false。独立 CLI 查询不经过 Harness；验证 Runtime 约束时应使用注册工具。
 
-下面的 guard 演示是独立工具入口测试，输出 llm_called: false。只有应用并启用上面的 v3 补丁后，注册的 incident_query 执行函数才会经过此入口；它仍不能约束 Miniclaw 的其他 shell、文件和网络工具，直接调用旧 CLI 也不会经过此入口。
+### 网页与模型诊断
 
-没有实现 OS/容器沙箱、网络隔离、真实监控适配、人工审批执行、跨重启恢复或模型评测，没有准确率与耗时改善数字。拒绝重启不等于已实现审批系统，JSONL 落盘不等于已实现断点续跑。
+1. 启动 `npm run dev:all`，打开 http://localhost:5173/，完成管理员初始化，将目标工作区设为 Host 模式。
+2. 在模型配置中设置兼容当前 Runner 的 Provider、模型及有效 API Key。真实模型请求会使用 Provider 额度。
+3. 在目标工作区创建 incident-demo.config.json。Home 示例：
 
-Miniclaw Runtime、会话和工作区来自上游；本目录及 v3 注册补丁由 Codex 辅助编写，需要用户运行、理解并继续修改。参考基线为 e1ebc699ab96544a032eb09abd4fb0ee5e3a1251。v3 在其注册入口增加可选的领域工具，不替换上游 Runtime。
+```bash
+mkdir -p data/groups/main
+printf '%s\n' '{"case_id":"release-regression"}' > data/groups/main/incident-demo.config.json
+```
 
-当前验证链路：请求 → 参数/权限检查 → 查询或拒绝 → 记录。真实模型诊断留待获得可用模型额度后验证。
+4. 停止原开发服务后重新启动 `npm run dev:all`，让 Runner 重新加载工具。保持该终端打开，在 Home 对话中发送下面的提示词。
+
+```text
+请仅使用 mcp__miniclaw__incident_query，分别查询 metrics、logs、deployments。
+case: release-regression
+service: checkout-api
+namespace: demo
+start: 2026-10-15T10:00:00Z
+end: 2026-10-15T10:15:00Z
+
+根据实际返回的证据生成故障时间线、最可能原因、尚不能确认的地方和下一步验证建议。
+引用 evidence_id，明确数据为模拟样例。将已观测事实与原因假设分开。
+不要执行修复操作，不要使用其他工具。工具不可用时直接说明。
+```
+
+预期取得 REL-M1、REL-M2、REL-L1、REL-L2、REL-D1 五条证据。连接池配置从 30 降至 3 与超时在时间上相关，可作为待验证的原因假设；不能仅凭这组样例宣称已证明因果。
+
+### 越界拒绝验证
+
+```text
+对本地模拟工具做一次拒绝路径测试。
+仅调用一次 mcp__miniclaw__incident_query：
+case: release-regression
+source: metrics
+service: checkout-api
+namespace: production
+start: 2026-10-15T10:00:00Z
+end: 2026-10-15T10:15:00Z
+
+如果被拒绝，报告错误码后停止。不要改参数重试、使用其他工具或修改配置。
+```
+
+预期程序返回 SCOPE_DENIED。模型自行拒绝调用不构成程序拦截证据；必须核对审计中的 decision=deny 和 tool_executed=false。
+
+## 实际验证证据
+
+以下两次真实模型运行已在网页中完成，并逐条核对本地 JSONL；数据源均为 synthetic_fixture。
+
+| 场景 | run_id | 审计结果 |
+| --- | --- | --- |
+| 正常诊断 | 9ca2533a-b19e-4cf5-ad49-30ba10952fab | 3 条 allow + 3 条 tool_result，均为 ok，共 5 条证据 |
+| 越界查询 | 5c3e65ce-a707-4fc4-870b-19d135a8f33a | 1 条 deny，SCOPE_DENIED，tool_executed=false，无查询结果记录 |
+
+验证时间：2026-10-17（UTC+8），JSONL 内时间使用 UTC。
+
+归档文件位于仓库根目录的 docs/evidence：
+
+- `release-regression-model-run.jsonl`
+- `production-scope-denied-model-run.jsonl`
+
+运行时原始文件位于 `data/groups/main/incident-audit/<run_id>.jsonl`。归档 JSONL 记录工具权限与结果，不包含模型完整回答；报告内容需结合网页对话检查。
+
+本次报告正确引用五条证据并说明因果尚待验证。仍需改进的表述包括：把“首次错误”改为“样例中最早观测到的错误”；扩大时间或服务范围属于后续方案，当前固定范围的工具无法直接执行。
+
+## 代码入口
+
+| 文件 | 职责 |
+| --- | --- |
+| scripts/incident-cli.mjs | 查询固定样例、校验参数、返回证据 |
+| scripts/incident-harness.mjs | 范围检查、失败计数、请求预算、JSONL 审计 |
+| fixtures/*.json | 发布回归、上游超时、证据不足三组样例 |
+| tests/*.test.mjs | 查询与 Harness 程序测试 |
+| scripts/runtime-smoke.mjs | 实际 Pi 适配器检查，无模型推理 |
+| ../container/agent-runner/src/incident-tools.ts | 按工作区配置创建受控工具 |
+| ../container/agent-runner/src/pi-index.ts | 将工具及说明接入 runTurn，并在结束时释放 |
+| SKILL.md | 独立 CLI 演示的操作说明 |
+| references/review-rubric.md | 诊断报告验收参考 |
+
+Runtime 演示由 incident-tools.ts 注入工具说明；本轮验证未单独证明 SKILL.md 的自动加载与执行。
+
+## 规则与边界
+
+- 配置默认关闭，仅在 Host 工作区显式启用；支持的 case_id 为 release-regression、upstream-timeout、insufficient-evidence。容器模式尚未接入此演示。
+- 每次 runTurn 固定 case、service、namespace 和时间范围，只允许范围内的时间子区间，采用 [start, end)。
+- 所有请求（包括拒绝）共用默认 12 次尝试预算；这是该工具的请求预算，不等于整个 Agent 的 max_iter。
+- 同一规范化查询连续两次返回 unavailable 或 error 后，后续相同查询被熔断；empty 不计为失败。计数在本次运行内有效，未实现跨重启恢复。
+- 权限决定先同步写入 JSONL；写入失败时不执行查询。只有 allow 而没有结果的记录不能证明查询完成。
+- Pi 参数校验可能先于 Harness 拒绝请求，这类请求不会进入此审计入口。
+- 约束只覆盖新增查询工具，其他通用工具仍开放。直接调用 CLI 不经过 Harness；当前不是全局安全沙箱。
+- 尚未接入真实监控、人工审批执行或模型批量评测，无生产 MTTR 改善率、准确率或通用安全保证。
+
+保留上游 Miniclaw Runtime 与许可证。本演示及集成由 Codex 辅助编写，项目维护者负责运行、理解和后续改造。
