@@ -1,6 +1,8 @@
 """Local HTTP fault-injection target. Counters measure actual handled requests."""
 import json
 import os
+import signal
+import sys
 import threading
 import time
 import uuid
@@ -13,6 +15,7 @@ LOCK = threading.Lock()
 LOG_LOCK = threading.Lock()
 LOGGER = None
 TRACER = None
+INSTANCE_ID = uuid.uuid4().hex
 STATE = {"mode": "healthy", "200": 0, "503": 0, "sum": 0.0, "count": 0}
 BOUNDS = [0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0]
 BUCKETS = {b: 0 for b in BOUNDS}
@@ -54,7 +57,9 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == '/health':
             return self.respond(200, {'status': 'ok', 'data_mode': 'live_lab',
                                       'log_exporter': LOGGER.snapshot() if LOGGER else {'enabled': False},
-                                      'trace_exporter': TRACER.snapshot() if TRACER else {'enabled': False}})
+                                      'trace_exporter': TRACER.snapshot() if TRACER else {'enabled': False},
+                                      'instance_id': INSTANCE_ID, 'mode': STATE['mode'],
+                                      'pod_uid': os.getenv('POD_UID')})
         if self.path == '/ready':
             with LOCK:
                 ready = STATE['mode'] == 'healthy'
@@ -126,6 +131,8 @@ class Handler(BaseHTTPRequestHandler):
 
 
 if __name__ == '__main__':
+    # PID 1 needs an explicit handler for the approved local SIGTERM restart.
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
     if os.getenv('LOKI_PUSH_URL'):
         LOGGER = LokiPublisher(os.environ['LOKI_PUSH_URL'])
         LOGGER.start()

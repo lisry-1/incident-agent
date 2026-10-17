@@ -76,6 +76,37 @@ class AppTests(unittest.TestCase):
         finally:
             self.fetch('/control/mode', {'mode': 'healthy'})
 
+    def test_standalone_app_sigterm_exits_cleanly_for_approved_restart(self):
+        import os
+        import socket
+        import subprocess
+        import time
+        with socket.socket() as sock:
+            sock.bind(('127.0.0.1', 0))
+            port = sock.getsockname()[1]
+        process = subprocess.Popen(
+            [sys.executable, str(Path(__file__).resolve().parents[1] / 'app.py')],
+            env={'PATH': os.environ.get('PATH', ''), 'LAB_BIND':'127.0.0.1', 'LAB_PORT':str(port)},
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        try:
+            ready = False
+            for _ in range(50):
+                try:
+                    with urllib.request.urlopen(f'http://127.0.0.1:{port}/health', timeout=.2) as response:
+                        health = json.load(response)
+                    ready = True
+                    break
+                except OSError:
+                    time.sleep(.02)
+            self.assertTrue(ready)
+            self.assertEqual(len(health['instance_id']), 32)
+            process.terminate()
+            self.assertEqual(process.wait(timeout=2), 0)
+        finally:
+            if process.poll() is None:
+                process.kill()
+                process.wait()
+
     def test_control_rejects_unknown_modes_and_get_mutation(self):
         before = app.STATE['mode']
         self.assertEqual(self.fetch('/control/mode', {'mode': 'restart'})[0], 400)

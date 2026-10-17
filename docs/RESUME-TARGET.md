@@ -78,3 +78,11 @@
 新增同一 checkout 服务的 kind / Kubernetes 实验：独立 job、Downward API Pod UID、readiness 故障、短期 ServiceAccount token、固定 Pod 与命名空间只读 API、实际权限自检、Pod 历史 Event 与当前快照区分，并接入 Pi 和时间线。81 项 Node、14 项 Python 测试与 Runner 构建通过；真实集群、网络、RBAC、kubelet 事件及模型四源诊断待用户本地验收。参见 [集中验收](../incident-observability-lab/KUBERNETES.md)。
 
 后续仍需独立诊断隔离、Proposal / 人工审批 / 受控执行和固定模型评测；不把领域只读账号等同于全局 Host 只读沙箱。
+
+## Kubernetes 实际验收与审批执行实现进展
+
+用户 Kubernetes 实验 221182a7-9d0c-4ee6-a91f-8dc59de7a50d 已通过：340 请求、164 日志、16 span、1 条聚合 Pod Event、RBAC 检查通过，Pod Ready 经历 True→False→True。模型审计 564996dc-16ce-4238-89d4-164c669d55ba 已由核验脚本确认：5 次领域调用、18+164+16+1=199 条时间线证据、同一 Pod UID、事件 count=24、快照与历史分离。证据已保存 docs/evidence/kubernetes-model-run.jsonl。模型仍存在调用次数、时间前后关系和窗口外快照的表述错误，工具核验不等于报告质量评测完成。
+
+新增独立诊断容器、受限 Unix socket Broker、证据/目标绑定的 Ed25519 提案与人工二次签名、一次性消费记录、固定容器重启执行器和实测验证。默认集成模式不调用模型；另提供 opt-in Pi agent-core 隔离模型模式。104 项 Node、15 项 Python 测试及 Runner 构建通过；实际 Docker/WSL socket、隔离、审批重启及独立模型验收待用户执行。见 [集中步骤](../incident-observability-lab/APPROVAL.md)。
+
+本轮仅实现本地实验容器重启，Deployment 版本回滚仍待实现；宿主机与 Docker 管理员为可信控制面，不能把原 Miniclaw Host 工作区称为全局只读沙箱。后续需完成真实验收、版本回滚、固定评测与交付。

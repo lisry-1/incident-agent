@@ -83,13 +83,13 @@ try {
   run('docker', [
     'build',
     '-t',
-    'incident-checkout:k8s-v9',
+    'incident-checkout:k8s-v10',
     path.join(root, 'incident-observability-lab'),
   ]);
   run(kind, [
     'load',
     'docker-image',
-    'incident-checkout:k8s-v9',
+    'incident-checkout:k8s-v10',
     '--name',
     'incident-lab',
   ]);
@@ -122,7 +122,7 @@ try {
       containers: [
         {
           name: 'checkout',
-          image: 'incident-checkout:k8s-v9',
+          image: 'incident-checkout:k8s-v10',
           imagePullPolicy: 'Never',
           ports: [{ containerPort: 8080 }],
           env: [
@@ -197,9 +197,33 @@ try {
     ],
     100000,
   );
-  const livePod = JSON.parse(
-    k(['get', 'pod', 'checkout-k8s', '-n', 'demo', '-o', 'json']),
+  let livePod;
+  for (let attempt = 0; attempt < 90; attempt++) {
+    livePod = JSON.parse(
+      k([
+        'get',
+        'pod',
+        'checkout-k8s',
+        '-n',
+        'demo',
+        '-o',
+        'json',
+        '--request-timeout=5s',
+      ]),
+    );
+    const container = livePod.status?.containerStatuses?.find(
+      (c) => c.name === 'checkout',
+    );
+    if (container?.ready && container.image?.endsWith(':k8s-v10')) break;
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+  const active = livePod.status?.containerStatuses?.find(
+    (c) => c.name === 'checkout',
   );
+  if (!active?.ready || !active.image?.endsWith(':k8s-v10'))
+    throw new Error(
+      'The v10 checkout container did not become ready; inspect the Pod before approval setup.',
+    );
   const adminConfig = JSON.parse(
     k(['config', 'view', '--raw', '--minify', '-o', 'json']),
   );
