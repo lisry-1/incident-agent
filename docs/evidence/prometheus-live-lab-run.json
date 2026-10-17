@@ -1,0 +1,580 @@
+{
+  "schema_version": 1,
+  "run_id": "010b9122-75d7-4ee2-9566-d01868127f93",
+  "recorded_at": "2026-10-17T07:07:31.063Z",
+  "mode": "prometheus_lab_integration",
+  "llm_called": false,
+  "data_mode": "live_lab",
+  "passed": true,
+  "restored_healthy": true,
+  "healthy": {
+    "mode": "healthy",
+    "requests": 176,
+    "observation": {
+      "status": "ok",
+      "partial": true,
+      "data_mode": "live_lab",
+      "scope": {
+        "service": "checkout-api",
+        "namespace": "demo",
+        "start": "2026-10-17T07:04:46.014Z",
+        "end": "2026-10-17T07:06:46.014Z"
+      },
+      "evaluation_window": {
+        "start": "2026-10-17T07:05:16.014Z",
+        "end": "2026-10-17T07:06:46.014Z",
+        "end_exclusive": true
+      },
+      "rate_lookback_seconds": 30,
+      "query_coverage": {
+        "http_5xx_ratio": {
+          "status": "ok",
+          "omitted_non_finite_samples": 10,
+          "warnings": []
+        },
+        "request_rate": {
+          "status": "ok",
+          "omitted_non_finite_samples": 0,
+          "warnings": []
+        },
+        "p95_ms": {
+          "status": "ok",
+          "omitted_non_finite_samples": 10,
+          "warnings": []
+        },
+        "target_up": {
+          "status": "ok",
+          "omitted_non_finite_samples": 0,
+          "warnings": []
+        }
+      },
+      "evidence": [
+        {
+          "evidence_id": "PROM-d7e029ff181c167e",
+          "timestamp": "2026-10-17T07:05:16.014Z",
+          "request_rate": 0,
+          "target_up": 1,
+          "source": "prometheus:checkout-lab:metrics",
+          "data_mode": "live_lab",
+          "service": "checkout-api",
+          "namespace": "demo",
+          "missing_metrics": [
+            "http_5xx_ratio",
+            "p95_ms"
+          ]
+        },
+        {
+          "evidence_id": "PROM-a57d93b26442cc70",
+          "timestamp": "2026-10-17T07:05:21.014Z",
+          "request_rate": 0,
+          "target_up": 1,
+          "source": "prometheus:checkout-lab:metrics",
+          "data_mode": "live_lab",
+          "service": "checkout-api",
+          "namespace": "demo",
+          "missing_metrics": [
+            "http_5xx_ratio",
+            "p95_ms"
+          ]
+        },
+        {
+          "evidence_id": "PROM-1f6517aaa7f503f2",
+          "timestamp": "2026-10-17T07:05:26.014Z",
+          "request_rate": 0,
+          "target_up": 1,
+          "source": "prometheus:checkout-lab:metrics",
+          "data_mode": "live_lab",
+          "service": "checkout-api",
+          "namespace": "demo",
+          "missing_metrics": [
+            "http_5xx_ratio",
+            "p95_ms"
+          ]
+        },
+        {
+          "evidence_id": "PROM-29aad99946a5e68c",
+          "timestamp": "2026-10-17T07:05:31.014Z",
+          "request_rate": 0,
+          "target_up": 1,
+          "source": "prometheus:checkout-lab:metrics",
+          "data_mode": "live_lab",
+          "service": "checkout-api",
+          "namespace": "demo",
+          "missing_metrics": [
+            "http_5xx_ratio",
+            "p95_ms"
+          ]
+        },
+        {
+          "evidence_id": "PROM-41b57784ea1b31d8",
+          "timestamp": "2026-10-17T07:05:36.014Z",
+          "request_rate": 0,
+          "target_up": 1,
+          "source": "prometheus:checkout-lab:metrics",
+          "data_mode": "live_lab",
+          "service": "checkout-api",
+          "namespace": "demo",
+          "missing_metrics": [
+            "http_5xx_ratio",
+            "p95_ms"
+          ]
+        },
+        {
+          "evidence_id": "PROM-2a6fe05be8bdc03f",
+          "timestamp": "2026-10-17T07:05:41.014Z",
+          "request_rate": 0,
+          "target_up": 1,
+          "source": "prometheus:checkout-lab:metrics",
+          "data_mode": "live_lab",
+          "service": "checkout-api",
+          "namespace": "demo",
+          "missing_metrics": [
+            "http_5xx_ratio",
+            "p95_ms"
+          ]
+        },
+        {
+          "evidence_id": "PROM-7a395ac754472adb",
+          "timestamp": "2026-10-17T07:05:46.014Z",
+          "request_rate": 0,
+          "target_up": 1,
+          "source": "prometheus:checkout-lab:metrics",
+          "data_mode": "live_lab",
+          "service": "checkout-api",
+          "namespace": "demo",
+          "missing_metrics": [
+            "http_5xx_ratio",
+            "p95_ms"
+          ]
+        },
+        {
+          "evidence_id": "PROM-ab8ebfd5d267ac97",
+          "timestamp": "2026-10-17T07:05:51.014Z",
+          "request_rate": 0,
+          "target_up": 1,
+          "source": "prometheus:checkout-lab:metrics",
+          "data_mode": "live_lab",
+          "service": "checkout-api",
+          "namespace": "demo",
+          "missing_metrics": [
+            "http_5xx_ratio",
+            "p95_ms"
+          ]
+        },
+        {
+          "evidence_id": "PROM-cb7964ecea3929da",
+          "timestamp": "2026-10-17T07:05:56.014Z",
+          "request_rate": 0,
+          "target_up": 1,
+          "source": "prometheus:checkout-lab:metrics",
+          "data_mode": "live_lab",
+          "service": "checkout-api",
+          "namespace": "demo",
+          "missing_metrics": [
+            "http_5xx_ratio",
+            "p95_ms"
+          ]
+        },
+        {
+          "evidence_id": "PROM-5d90028412e421ba",
+          "timestamp": "2026-10-17T07:06:01.014Z",
+          "request_rate": 0,
+          "target_up": 1,
+          "source": "prometheus:checkout-lab:metrics",
+          "data_mode": "live_lab",
+          "service": "checkout-api",
+          "namespace": "demo",
+          "missing_metrics": [
+            "http_5xx_ratio",
+            "p95_ms"
+          ]
+        },
+        {
+          "evidence_id": "PROM-d14addeb9131e3dd",
+          "timestamp": "2026-10-17T07:06:06.014Z",
+          "http_5xx_ratio": 0,
+          "request_rate": 0.15980799999999998,
+          "p95_ms": 24.25,
+          "target_up": 1,
+          "source": "prometheus:checkout-lab:metrics",
+          "data_mode": "live_lab",
+          "service": "checkout-api",
+          "namespace": "demo",
+          "missing_metrics": []
+        },
+        {
+          "evidence_id": "PROM-eec6f26e3ce00ef6",
+          "timestamp": "2026-10-17T07:06:11.014Z",
+          "http_5xx_ratio": 0,
+          "request_rate": 0.7991039283142651,
+          "p95_ms": 24.25,
+          "target_up": 1,
+          "source": "prometheus:checkout-lab:metrics",
+          "data_mode": "live_lab",
+          "service": "checkout-api",
+          "namespace": "demo",
+          "missing_metrics": []
+        },
+        {
+          "evidence_id": "PROM-cabbf9a533301548",
+          "timestamp": "2026-10-17T07:06:16.014Z",
+          "http_5xx_ratio": 0,
+          "request_rate": 1.5982078566285303,
+          "p95_ms": 24.25,
+          "target_up": 1,
+          "source": "prometheus:checkout-lab:metrics",
+          "data_mode": "live_lab",
+          "service": "checkout-api",
+          "namespace": "demo",
+          "missing_metrics": []
+        },
+        {
+          "evidence_id": "PROM-3e85b9e145a67a83",
+          "timestamp": "2026-10-17T07:06:21.014Z",
+          "http_5xx_ratio": 0,
+          "request_rate": 2.3974076889226708,
+          "p95_ms": 24.25,
+          "target_up": 1,
+          "source": "prometheus:checkout-lab:metrics",
+          "data_mode": "live_lab",
+          "service": "checkout-api",
+          "namespace": "demo",
+          "missing_metrics": []
+        },
+        {
+          "evidence_id": "PROM-e5524bb8a71afb56",
+          "timestamp": "2026-10-17T07:06:26.014Z",
+          "http_5xx_ratio": 0,
+          "request_rate": 3.1965435852302275,
+          "p95_ms": 24.25,
+          "target_up": 1,
+          "source": "prometheus:checkout-lab:metrics",
+          "data_mode": "live_lab",
+          "service": "checkout-api",
+          "namespace": "demo",
+          "missing_metrics": []
+        },
+        {
+          "evidence_id": "PROM-325239db60f318ba",
+          "timestamp": "2026-10-17T07:06:31.014Z",
+          "http_5xx_ratio": 0,
+          "request_rate": 3.8403072245779666,
+          "p95_ms": 24.25,
+          "target_up": 1,
+          "source": "prometheus:checkout-lab:metrics",
+          "data_mode": "live_lab",
+          "service": "checkout-api",
+          "namespace": "demo",
+          "missing_metrics": []
+        },
+        {
+          "evidence_id": "PROM-5e631c56e5449bba",
+          "timestamp": "2026-10-17T07:06:36.014Z",
+          "http_5xx_ratio": 0,
+          "request_rate": 4,
+          "p95_ms": 24.25,
+          "target_up": 1,
+          "source": "prometheus:checkout-lab:metrics",
+          "data_mode": "live_lab",
+          "service": "checkout-api",
+          "namespace": "demo",
+          "missing_metrics": []
+        },
+        {
+          "evidence_id": "PROM-5844b9ff0315b241",
+          "timestamp": "2026-10-17T07:06:41.014Z",
+          "http_5xx_ratio": 0,
+          "request_rate": 4.000320025602048,
+          "p95_ms": 24.25,
+          "target_up": 1,
+          "source": "prometheus:checkout-lab:metrics",
+          "data_mode": "live_lab",
+          "service": "checkout-api",
+          "namespace": "demo",
+          "missing_metrics": []
+        }
+      ],
+      "note": "Actual Prometheus HTTP results from an intentionally fault-injected local lab; not production data. p95 is a histogram estimate. No LLM or remediation is invoked."
+    }
+  },
+  "fault": {
+    "mode": "fault",
+    "requests": 160,
+    "observation": {
+      "status": "ok",
+      "partial": false,
+      "data_mode": "live_lab",
+      "scope": {
+        "service": "checkout-api",
+        "namespace": "demo",
+        "start": "2026-10-17T07:05:31.052Z",
+        "end": "2026-10-17T07:07:31.052Z"
+      },
+      "evaluation_window": {
+        "start": "2026-10-17T07:06:01.052Z",
+        "end": "2026-10-17T07:07:31.052Z",
+        "end_exclusive": true
+      },
+      "rate_lookback_seconds": 30,
+      "query_coverage": {
+        "http_5xx_ratio": {
+          "status": "ok",
+          "omitted_non_finite_samples": 0,
+          "warnings": []
+        },
+        "request_rate": {
+          "status": "ok",
+          "omitted_non_finite_samples": 0,
+          "warnings": []
+        },
+        "p95_ms": {
+          "status": "ok",
+          "omitted_non_finite_samples": 0,
+          "warnings": []
+        },
+        "target_up": {
+          "status": "ok",
+          "omitted_non_finite_samples": 0,
+          "warnings": []
+        }
+      },
+      "evidence": [
+        {
+          "evidence_id": "PROM-d229700fa65ac403",
+          "timestamp": "2026-10-17T07:06:01.052Z",
+          "http_5xx_ratio": 0,
+          "request_rate": 0.133344,
+          "p95_ms": 24.25,
+          "target_up": 1,
+          "source": "prometheus:checkout-lab:metrics",
+          "data_mode": "live_lab",
+          "service": "checkout-api",
+          "namespace": "demo",
+          "missing_metrics": []
+        },
+        {
+          "evidence_id": "PROM-8703de01f8058041",
+          "timestamp": "2026-10-17T07:06:06.052Z",
+          "http_5xx_ratio": 0,
+          "request_rate": 0.6667733418673495,
+          "p95_ms": 24.25,
+          "target_up": 1,
+          "source": "prometheus:checkout-lab:metrics",
+          "data_mode": "live_lab",
+          "service": "checkout-api",
+          "namespace": "demo",
+          "missing_metrics": []
+        },
+        {
+          "evidence_id": "PROM-4d6464700dec11bd",
+          "timestamp": "2026-10-17T07:06:11.052Z",
+          "http_5xx_ratio": 0,
+          "request_rate": 1.333546683734699,
+          "p95_ms": 24.25,
+          "target_up": 1,
+          "source": "prometheus:checkout-lab:metrics",
+          "data_mode": "live_lab",
+          "service": "checkout-api",
+          "namespace": "demo",
+          "missing_metrics": []
+        },
+        {
+          "evidence_id": "PROM-91b45433878dad09",
+          "timestamp": "2026-10-17T07:06:16.052Z",
+          "http_5xx_ratio": 0,
+          "request_rate": 2.0004000480057607,
+          "p95_ms": 24.25,
+          "target_up": 1,
+          "source": "prometheus:checkout-lab:metrics",
+          "data_mode": "live_lab",
+          "service": "checkout-api",
+          "namespace": "demo",
+          "missing_metrics": []
+        },
+        {
+          "evidence_id": "PROM-307fab11395dbf7f",
+          "timestamp": "2026-10-17T07:06:21.052Z",
+          "http_5xx_ratio": 0,
+          "request_rate": 2.667200064007681,
+          "p95_ms": 24.25,
+          "target_up": 1,
+          "source": "prometheus:checkout-lab:metrics",
+          "data_mode": "live_lab",
+          "service": "checkout-api",
+          "namespace": "demo",
+          "missing_metrics": []
+        },
+        {
+          "evidence_id": "PROM-aa2cc897a0ffa5cc",
+          "timestamp": "2026-10-17T07:06:26.052Z",
+          "http_5xx_ratio": 0,
+          "request_rate": 3.3338453742966108,
+          "p95_ms": 24.25,
+          "target_up": 1,
+          "source": "prometheus:checkout-lab:metrics",
+          "data_mode": "live_lab",
+          "service": "checkout-api",
+          "namespace": "demo",
+          "missing_metrics": []
+        },
+        {
+          "evidence_id": "PROM-b38bdf4815e41874",
+          "timestamp": "2026-10-17T07:06:31.052Z",
+          "http_5xx_ratio": 0,
+          "request_rate": 4.000000000000001,
+          "p95_ms": 24.25,
+          "target_up": 1,
+          "source": "prometheus:checkout-lab:metrics",
+          "data_mode": "live_lab",
+          "service": "checkout-api",
+          "namespace": "demo",
+          "missing_metrics": []
+        },
+        {
+          "evidence_id": "PROM-41a6a8c97687b196",
+          "timestamp": "2026-10-17T07:06:36.052Z",
+          "http_5xx_ratio": 0,
+          "request_rate": 4.000320025602048,
+          "p95_ms": 24.25,
+          "target_up": 1,
+          "source": "prometheus:checkout-lab:metrics",
+          "data_mode": "live_lab",
+          "service": "checkout-api",
+          "namespace": "demo",
+          "missing_metrics": []
+        },
+        {
+          "evidence_id": "PROM-208eb4024ae3dde0",
+          "timestamp": "2026-10-17T07:06:41.052Z",
+          "http_5xx_ratio": 0,
+          "request_rate": 4.000160006400256,
+          "p95_ms": 24.25,
+          "target_up": 1,
+          "source": "prometheus:checkout-lab:metrics",
+          "data_mode": "live_lab",
+          "service": "checkout-api",
+          "namespace": "demo",
+          "missing_metrics": []
+        },
+        {
+          "evidence_id": "PROM-981f3521e82bc3ff",
+          "timestamp": "2026-10-17T07:06:46.052Z",
+          "http_5xx_ratio": 0,
+          "request_rate": 3.840153606144246,
+          "p95_ms": 24.25,
+          "target_up": 1,
+          "source": "prometheus:checkout-lab:metrics",
+          "data_mode": "live_lab",
+          "service": "checkout-api",
+          "namespace": "demo",
+          "missing_metrics": []
+        },
+        {
+          "evidence_id": "PROM-d6286aba306c4f56",
+          "timestamp": "2026-10-17T07:06:51.052Z",
+          "http_5xx_ratio": 0.1798797156916348,
+          "request_rate": 3.7070698989252473,
+          "p95_ms": 213.99999999999997,
+          "target_up": 1,
+          "source": "prometheus:checkout-lab:metrics",
+          "data_mode": "live_lab",
+          "service": "checkout-api",
+          "namespace": "demo",
+          "missing_metrics": []
+        },
+        {
+          "evidence_id": "PROM-d0b141a5c3f4e29a",
+          "timestamp": "2026-10-17T07:06:56.052Z",
+          "http_5xx_ratio": 0.34887355124365144,
+          "request_rate": 3.4406048725847107,
+          "p95_ms": 230.83333333333331,
+          "target_up": 1,
+          "source": "prometheus:checkout-lab:metrics",
+          "data_mode": "live_lab",
+          "service": "checkout-api",
+          "namespace": "demo",
+          "missing_metrics": []
+        },
+        {
+          "evidence_id": "PROM-5055e4fedde482a4",
+          "timestamp": "2026-10-17T07:07:01.052Z",
+          "http_5xx_ratio": 0.5645751220802343,
+          "request_rate": 3.3071146666666666,
+          "p95_ms": 237.67857142857144,
+          "target_up": 1,
+          "source": "prometheus:checkout-lab:metrics",
+          "data_mode": "live_lab",
+          "service": "checkout-api",
+          "namespace": "demo",
+          "missing_metrics": []
+        },
+        {
+          "evidence_id": "PROM-640ae4f44b11557e",
+          "timestamp": "2026-10-17T07:07:06.052Z",
+          "http_5xx_ratio": 0.789513565850681,
+          "request_rate": 3.040819265541243,
+          "p95_ms": 240.83333333333331,
+          "target_up": 1,
+          "source": "prometheus:checkout-lab:metrics",
+          "data_mode": "live_lab",
+          "service": "checkout-api",
+          "namespace": "demo",
+          "missing_metrics": []
+        },
+        {
+          "evidence_id": "PROM-4262211259513517",
+          "timestamp": "2026-10-17T07:07:11.052Z",
+          "http_5xx_ratio": 1,
+          "request_rate": 3.0675253676813745,
+          "p95_ms": 242.5,
+          "target_up": 1,
+          "source": "prometheus:checkout-lab:metrics",
+          "data_mode": "live_lab",
+          "service": "checkout-api",
+          "namespace": "demo",
+          "missing_metrics": []
+        },
+        {
+          "evidence_id": "PROM-ef12022c0e063b91",
+          "timestamp": "2026-10-17T07:07:16.052Z",
+          "http_5xx_ratio": 1,
+          "request_rate": 3.520140805632225,
+          "p95_ms": 242.49999999999997,
+          "target_up": 1,
+          "source": "prometheus:checkout-lab:metrics",
+          "data_mode": "live_lab",
+          "service": "checkout-api",
+          "namespace": "demo",
+          "missing_metrics": []
+        },
+        {
+          "evidence_id": "PROM-b7c838a727b4157b",
+          "timestamp": "2026-10-17T07:07:21.052Z",
+          "http_5xx_ratio": 1,
+          "request_rate": 3.520140805632225,
+          "p95_ms": 242.49999999999997,
+          "target_up": 1,
+          "source": "prometheus:checkout-lab:metrics",
+          "data_mode": "live_lab",
+          "service": "checkout-api",
+          "namespace": "demo",
+          "missing_metrics": []
+        },
+        {
+          "evidence_id": "PROM-0a16bdb2ed530ee1",
+          "timestamp": "2026-10-17T07:07:26.052Z",
+          "http_5xx_ratio": 1,
+          "request_rate": 3.520281622529802,
+          "p95_ms": 242.5,
+          "target_up": 1,
+          "source": "prometheus:checkout-lab:metrics",
+          "data_mode": "live_lab",
+          "service": "checkout-api",
+          "namespace": "demo",
+          "missing_metrics": []
+        }
+      ],
+      "note": "Actual Prometheus HTTP results from an intentionally fault-injected local lab; not production data. p95 is a histogram estimate. No LLM or remediation is invoked."
+    }
+  }
+}

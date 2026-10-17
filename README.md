@@ -13,7 +13,11 @@
 
 新增可选 staged 模式：实际 Pi 工具列表从指标探活切换为深层排查，执行入口再次校验阶段；新增 Pod 事件和 trace 样例，程序按毫秒时间戳排序、按 60 秒窗口切片，并保留共享标识关联和查询覆盖信息。
 
-[启用分阶段模式及验收步骤](incident-diagnosis-demo/STAGED-WORKFLOW.md)。这一版本已通过无模型程序及真实 Pi Session 工具切换检查，新的网页模型流程仍待本地运行验证。
+[启用分阶段模式及验收步骤](incident-diagnosis-demo/STAGED-WORKFLOW.md)。这一版本已通过无模型程序及真实 Pi Session 工具切换检查，新的网页模型流程已在本地完成，并核对 probe→deep、5 次数据查询和 1 次时间线执行；模型报告的计算与引用问题仍待修正。
+
+## 真实数据源接入进展
+
+新增 [Prometheus 本地实验环境与查询适配器](incident-observability-lab/README.md)，用于生成实际 HTTP 流量并查询抓取到的指标。目前已通过适配器与应用测试，真实容器集成待本地验收，尚未接入 Miniclaw 工具。后续继续推进 Loki、Jaeger、Kubernetes 与审批隔离。
 
 ## 已完成验证
 

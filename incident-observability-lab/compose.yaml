@@ -1,0 +1,51 @@
+name: incident-observability-lab
+services:
+  checkout:
+    build: .
+    ports:
+      - '127.0.0.1:18080:8080'
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ['no-new-privileges:true']
+    pids_limit: 64
+    mem_limit: 128m
+    cpus: 0.5
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'python',
+          '-c',
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=2)",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [lab]
+  prometheus:
+    image: prom/prometheus:v3.13.4
+    ports:
+      - '127.0.0.1:19090:9090'
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=6h
+      - --storage.tsdb.retention.size=256MB
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ['no-new-privileges:true']
+    pids_limit: 128
+    mem_limit: 512m
+    cpus: 0.5
+    depends_on:
+      checkout:
+        condition: service_healthy
+    networks: [lab]
+networks:
+  lab:
+    driver: bridge
+volumes:
+  prometheus-data:

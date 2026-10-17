@@ -52,3 +52,9 @@
 - 已补充合成 Pod 事件与调用链记录，程序进行毫秒排序、60 秒切片、共享 trace_id / pod / version 关联，以及缺失源和查询区间记录。
 - 已通过 41 项程序测试、原模式 9 项适配器检查、新模式 9 项真实 Pi Session 检查。检查不请求模型。
 - 网页分阶段模型流程、真实数据源、隔离及审批仍待验证或实现，不能标记为全部完成。
+
+## 分阶段模型验收与 Prometheus 接入进展
+
+用户本地 run_id 49379826-04f3-4f59-9d1d-cb48677c79bb 已确认 probe→deep、四次深层查询和一次时间线生成，共八条合成证据。模型报告存在时间差计算错误、扩大 trace/pod 关联、将查询成功误称完整覆盖和提出超出固定窗口的查询建议；这些是报告评测待修项。
+
+新增 incident-observability-lab：真实 HTTP 故障注入服务、Prometheus Compose 配置及固定模板只读 HTTP 适配器。10 项适配器测试和3项本地 HTTP 应用测试通过；真实 Docker/Prometheus 集成与 Miniclaw 异步工具接入尚待验证或实现。namespace 此时只是指标标签，不能计作 Kubernetes 已接入。
