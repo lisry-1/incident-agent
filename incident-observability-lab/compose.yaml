@@ -2,6 +2,11 @@ name: incident-observability-lab
 services:
   checkout:
     build: .
+    environment:
+      LOKI_PUSH_URL: http://loki:3100/loki/api/v1/push
+    depends_on:
+      loki:
+        condition: service_started
     ports:
       - '127.0.0.1:18080:8080'
     read_only: true
@@ -44,8 +49,41 @@ services:
       checkout:
         condition: service_healthy
     networks: [lab]
+  loki-volume-init:
+    image: python:3.14-slim
+    user: '0:0'
+    entrypoint: [python, -c, "import os; os.chown('/loki', 10001, 10001)"]
+    volumes: [loki-data:/loki]
+    read_only: true
+    cap_drop: [ALL]
+    cap_add: [CHOWN]
+    security_opt: ['no-new-privileges:true']
+    pids_limit: 16
+    mem_limit: 32m
+    network_mode: none
+  loki:
+    image: grafana/loki:3.7.0
+    user: '10001:10001'
+    ports: ['127.0.0.1:13100:3100']
+    command: ['-config.file=/etc/loki/lab.yaml']
+    tmpfs: ['/tmp:rw,noexec,nosuid,size=64m,mode=1777']
+    volumes:
+      - ./loki.yml:/etc/loki/lab.yaml:ro
+      - loki-data:/loki
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ['no-new-privileges:true']
+    pids_limit: 128
+    mem_limit: 512m
+    cpus: 0.5
+    depends_on:
+      loki-volume-init:
+        condition: service_completed_successfully
+    networks: [lab]
+
 networks:
   lab:
     driver: bridge
 volumes:
   prometheus-data:
+  loki-data:

@@ -215,3 +215,138 @@ test('Pi adapted live tools query Prometheus, switch stage, never fall back to f
   assert.ok(!audit.includes('synthetic_fixture'));
   assert.ok(!audit.includes('REL-'));
 });
+
+test('Pi live logs option joins actual query results into timeline and shares the failure breaker', async (t) => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'live-pi-logs-'));
+  const oldFetch = globalThis.fetch;
+  let bundle,
+    logCalls = 0,
+    logFailure = false;
+  const ns = String(
+    BigInt(Date.parse(scope.start) + 60000) * 1000000n + 987654n,
+  );
+  const value = {
+    timestamp: '2026-10-15T10:01:00.000Z',
+    service: 'checkout-api',
+    namespace: 'demo',
+    status: 503,
+    level: 'ERROR',
+    duration_ms: 121,
+    request_id: 'b'.repeat(32),
+    fault_injected: true,
+    data_mode: 'live_lab',
+    message: 'Injected HTTP 503 in local experiment',
+  };
+  globalThis.fetch = async (input) => {
+    const url = new URL(input);
+    if (url.pathname === '/loki/api/v1/query_range') {
+      logCalls++;
+      assert.equal(url.origin, 'http://127.0.0.1:13100');
+      if (logFailure) throw new Error('Unreachable test Loki');
+      return new Response(
+        JSON.stringify({
+          status: 'success',
+          data: {
+            resultType: 'streams',
+            result: [
+              {
+                stream: {
+                  job: 'checkout-lab',
+                  service: 'checkout-api',
+                  namespace: 'demo',
+                  status: '503',
+                },
+                values: [[ns, JSON.stringify(value)]],
+              },
+            ],
+          },
+        }),
+      );
+    }
+    assert.equal(url.origin, 'http://127.0.0.1:19090');
+    const q = url.searchParams.get('query');
+    const sample = q.includes('histogram_quantile')
+      ? '200'
+      : q.includes('status=~')
+        ? '0.5'
+        : q.startsWith('min')
+          ? '1'
+          : '4';
+    return new Response(
+      JSON.stringify({
+        status: 'success',
+        data: {
+          resultType: 'matrix',
+          result: [
+            {
+              metric: { service: 'checkout-api', namespace: 'demo' },
+              values: [[Number(url.searchParams.get('start')), sample]],
+            },
+          ],
+        },
+      }),
+    );
+  };
+  t.after(() => {
+    bundle?.close();
+    globalThis.fetch = oldFetch;
+    rmSync(dir, { recursive: true, force: true });
+  });
+  writeFileSync(
+    path.join(dir, 'incident-demo.config.json'),
+    JSON.stringify({
+      case_id: 'prometheus-lab',
+      workflow: 'staged',
+      window_seconds: 120,
+      end: scope.end,
+      logs: true,
+    }),
+  );
+  bundle = await createIncidentTools(dir, true);
+  const tools = adaptClaudeMcpToolsToPi(bundle.tools, {
+    namespace: 'mcp__miniclaw',
+  });
+  const call = async (name, args) => {
+    const tool = tools.find((t) => t.name.endsWith(name));
+    const r = await tool.execute(
+      'logs-test',
+      await tool.prepareArguments(args),
+      new AbortController().signal,
+    );
+    return JSON.parse(r.content.find((x) => x.type === 'text').text);
+  };
+  assert.equal(
+    (await call('incident_investigate', { ...args, source: 'logs' })).code,
+    'STAGE_DENIED',
+  );
+  assert.equal(logCalls, 0);
+  assert.equal((await call('incident_probe', args)).stage, 'deep');
+  const logResult = await call('incident_investigate', {
+    ...args,
+    source: 'logs',
+  });
+  assert.equal(logResult.result.status, 'ok');
+  assert.match(logResult.result.evidence[0].evidence_id, /^LOKI-/);
+  const timeline = (await call('incident_timeline', {})).result;
+  assert.equal(timeline.events.length, 2);
+  assert.equal(timeline.source_coverage.logs[0].partial, false);
+  assert.equal(
+    timeline.events.filter((e) => e.source_kind === 'logs')[0].timestamp_ns,
+    ns,
+  );
+  assert.equal(timeline.data_mode, 'live_lab');
+  logFailure = true;
+  const results = await Promise.all(
+    Array.from({ length: 3 }, () =>
+      call('incident_investigate', { ...args, source: 'logs' }),
+    ),
+  );
+  assert.equal(results[0].result.status, 'unavailable');
+  assert.equal(results[1].result.status, 'unavailable');
+  assert.equal(results[2].code, 'CIRCUIT_OPEN');
+  assert.equal(logCalls, 3);
+  assert.match(
+    bundle.prompt,
+    /first nonzero evaluation is NOT the precise failure onset/,
+  );
+});

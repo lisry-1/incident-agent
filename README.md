@@ -17,7 +17,7 @@
 
 ## 真实数据源接入进展
 
-新增 [Prometheus 本地实验环境与查询适配器](incident-observability-lab/README.md)，用于生成实际 HTTP 流量并查询抓取到的指标。本地容器实验已验证：336 次请求、正常 5xx=0、故障 5xx=1、恢复健康成功。已提供 [Miniclaw 异步工具接入](incident-observability-lab/RUNTIME.md)，真实模型使用 live_lab 的端到端验收待执行。后续继续推进 Loki、Jaeger、Kubernetes 与审批隔离。
+新增 [Prometheus 本地实验环境与查询适配器](incident-observability-lab/README.md)，用于生成实际 HTTP 流量并查询抓取到的指标。本地容器实验已验证：336 次请求、正常 5xx=0、故障 5xx=1、恢复健康成功。已提供 [Miniclaw 异步工具接入](incident-observability-lab/RUNTIME.md)，纯指标真实模型验收已通过（18 条 PROM-*、probe→deep、时间线对齐）；日志模式另行验收。已增加 [Loki 日志接入](incident-observability-lab/LOKI.md)，容器和真实模型验收待执行；后续继续推进 Jaeger、Kubernetes 与审批隔离。
 
 ## 已完成验证
 

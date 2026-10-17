@@ -9,7 +9,7 @@
 - 查询固定服务 checkout-api、namespace 标签 demo 和 PromQL 模板，限制 35 秒至 15 分钟的窗口、5 秒步长、请求超时、响应大小及返回数据范围。
 - 读到 NaN、无样本、单项失败时，保留缺失与 partial 标记；不会补零假装健康。
 - 本模块已提供 Miniclaw 分阶段工具接入（见 [Runtime 接入](RUNTIME.md)）。此前已完成的真实模型验收仍对应 synthetic_fixture；live_lab 模型验收需另行执行。
-- Loki、Jaeger、Kubernetes 接入以及审批执行在后续阶段。这里的 namespace 是指标标签，还不是 Kubernetes 命名空间。
+- Loki 日志写入与查询已提供，见 [日志接入与验收](LOKI.md)；Jaeger、Kubernetes 以及审批执行在后续阶段。这里的 namespace 是指标标签，还不是 Kubernetes 命名空间。
 
 本轮故障注入让 HTTP 请求返回 503，并引入可控处理延迟；没有真实数据库或连接池，不能称为复现了 DB_POOL_MAX 故障。直方图 p95 是估计值。
 
@@ -32,7 +32,7 @@ check 在 Prometheus 就绪且实际抓取 checkout 成功后返回 status=ready
 - checkout 健康检查：http://localhost:18080/health
 - Prometheus：http://localhost:19090
 
-宿主机端口绑定 127.0.0.1；容器使用普通 bridge 网络，可出站联网。两个容器配置的内存上限合计 640 MiB，Docker 自身另有开销。127.0.0.1 绑定限制宿主机入站访问；本配置不是 Miniclaw Agent 的权限沙箱。
+宿主机端口绑定 127.0.0.1；容器使用普通 bridge 网络，可出站联网。三个常驻容器配置的内存上限合计 1152 MiB（另有一次性卷初始化容器上限 32 MiB），Docker 自身另有开销。127.0.0.1 绑定限制宿主机入站访问；本配置不是 Miniclaw Agent 的权限沙箱。
 
 镜像：Prometheus v3.13.4（官方页面 2026-10-17 所列 LTS），Python 3.14-slim。Python 标签会随补丁更新，完全复现时应保存镜像 digest：
 

@@ -7,12 +7,16 @@ import {
   QUERIES,
   validateLabBase,
 } from './prometheus-adapter.mjs';
+import { LokiLogsAdapter } from './loki-adapter.mjs';
 
 const app = validateLabBase(
   process.env.INCIDENT_LAB_APP_URL || 'http://127.0.0.1:18080',
 );
 const prom = validateLabBase(
   process.env.INCIDENT_LAB_PROMETHEUS_URL || 'http://127.0.0.1:19090',
+);
+const loki = validateLabBase(
+  process.env.INCIDENT_LAB_LOKI_URL || 'http://127.0.0.1:13100',
 );
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 async function request(url, options = {}) {
@@ -22,14 +26,24 @@ async function request(url, options = {}) {
     signal: AbortSignal.timeout(5000),
   });
 }
-async function waitReady() {
+async function waitReady(withLogs = false) {
   let reason = 'startup';
   for (let i = 0; i < 30; i++) {
     try {
       const appResponse = await request(new URL('/health', app));
       if (!appResponse.ok)
         throw new Error('Checkout health endpoint is not ready.');
-      await appResponse.body?.cancel();
+      const appBody = await appResponse.json();
+      if (withLogs) {
+        if (!appBody.log_exporter?.enabled)
+          throw new Error(
+            'Checkout log exporter is not enabled. Rebuild the checkout image.',
+          );
+        const logReady = await request(new URL('/ready', loki));
+        const ok = logReady.ok;
+        await logReady.body?.cancel();
+        if (!ok) throw new Error('Loki is starting.');
+      }
       const ready = await request(new URL('/-/ready', prom));
       if (!ready.ok) throw new Error('Prometheus is starting.');
       await ready.body?.cancel();
@@ -58,6 +72,7 @@ async function waitReady() {
         checkout: 'healthy endpoint reachable',
         prometheus: 'ready',
         scrape_target_up: 1,
+        ...(withLogs ? { loki: 'ready', log_exporter: 'enabled' } : {}),
       };
     } catch (error) {
       reason = error.message;
@@ -92,12 +107,19 @@ async function traffic(mode) {
   await setMode(mode);
   const end = Date.now() + 45000;
   let count = 0;
+  const requestIds = [];
   while (Date.now() < end) {
     const responses = await Promise.all(
       Array.from({ length: 4 }, () => request(new URL('/checkout', app))),
     );
     for (const response of responses) {
-      await response.body?.cancel();
+      const body = await response.json();
+      if (
+        typeof body.request_id !== 'string' ||
+        !/^[a-f0-9]{32}$/.test(body.request_id)
+      )
+        throw new Error('Checkout returned invalid request ID.');
+      requestIds.push(body.request_id);
       if (response.status !== (mode === 'healthy' ? 200 : 503))
         throw new Error(
           'Unexpected checkout status during controlled experiment.',
@@ -106,10 +128,18 @@ async function traffic(mode) {
     }
     await sleep(1000);
   }
-  return { mode, requests: count, observation: await capture() };
+  return {
+    mode,
+    requests: count,
+    request_ids: requestIds,
+    observation: await capture(),
+  };
 }
-async function exercise() {
-  await waitReady();
+async function exercise(withLogs = false) {
+  await waitReady(withLogs);
+  const exporterBefore = withLogs
+    ? (await (await request(new URL('/health', app))).json()).log_exporter
+    : undefined;
   const runId = randomUUID();
   let healthy, fault;
   try {
@@ -124,13 +154,40 @@ async function exercise() {
   }
   const healthyLatest = healthy.observation.evidence.at(-1);
   const faultLatest = fault.observation.evidence.at(-1);
-  const passed =
+  let passed =
     healthyLatest?.target_up === 1 &&
     faultLatest?.target_up === 1 &&
     healthyLatest?.http_5xx_ratio <= 0.01 &&
     faultLatest?.http_5xx_ratio >= 0.1 &&
     healthyLatest?.request_rate > 0 &&
     faultLatest?.request_rate > 0;
+  let logs, exporterAfter;
+  if (withLogs) {
+    const scope = fault.observation.scope;
+    const adapter = new LokiLogsAdapter({ scope, baseUrl: loki.origin });
+    for (let attempt = 0; attempt < 20; attempt++) {
+      exporterAfter = (await (await request(new URL('/health', app))).json())
+        .log_exporter;
+      logs = await adapter.query(scope);
+      const ids = new Set(logs.evidence.map((e) => e.request_id));
+      if (
+        logs.status === 'ok' &&
+        fault.request_ids.every((id) => ids.has(id)) &&
+        exporterAfter.pending === 0
+      )
+        break;
+      await sleep(500);
+    }
+    const ids = new Set(logs.evidence.map((e) => e.request_id));
+    passed =
+      passed &&
+      logs.status === 'ok' &&
+      !logs.partial &&
+      fault.request_ids.every((id) => ids.has(id)) &&
+      exporterAfter.enabled &&
+      exporterAfter.pending === 0 &&
+      exporterAfter.dropped === exporterBefore.dropped;
+  }
   const directory = fileURLToPath(new URL('./runs/', import.meta.url));
   mkdirSync(directory, { recursive: true });
   const auditFile = path.join(directory, `${runId}.json`);
@@ -141,13 +198,22 @@ async function exercise() {
         schema_version: 1,
         run_id: runId,
         recorded_at: new Date().toISOString(),
-        mode: 'prometheus_lab_integration',
+        mode: withLogs
+          ? 'observability_lab_integration'
+          : 'prometheus_lab_integration',
         llm_called: false,
         data_mode: 'live_lab',
         passed,
         restored_healthy: true,
         healthy,
         fault,
+        ...(withLogs
+          ? {
+              logs,
+              exporter_before: exporterBefore,
+              exporter_after: exporterAfter,
+            }
+          : {}),
       },
       null,
       2,
@@ -164,6 +230,17 @@ async function exercise() {
         healthy_5xx_ratio: healthyLatest?.http_5xx_ratio ?? null,
         fault_5xx_ratio: faultLatest?.http_5xx_ratio ?? null,
         requests_generated: healthy.requests + fault.requests,
+        ...(withLogs
+          ? {
+              loki_logs: logs.evidence.length,
+              log_query_partial: logs.partial,
+              all_fault_request_ids_found: fault.request_ids.every((id) =>
+                logs.evidence.some((e) => e.request_id === id),
+              ),
+              log_exporter_dropped_delta:
+                exporterAfter.dropped - exporterBefore.dropped,
+            }
+          : {}),
         restored_healthy: true,
         audit_file: auditFile,
       },
@@ -176,7 +253,7 @@ async function exercise() {
 async function main() {
   if (process.argv.length !== 3)
     throw new Error(
-      'Usage: node incident-observability-lab/lab-cli.mjs check|capture|exercise',
+      'Usage: node incident-observability-lab/lab-cli.mjs check|capture|exercise|check-logs|exercise-logs',
     );
   const command = process.argv[2];
   if (command === 'check')
@@ -184,7 +261,13 @@ async function main() {
   else if (command === 'capture')
     console.log(JSON.stringify(await capture(), null, 2));
   else if (command === 'exercise') await exercise();
-  else throw new Error('Unknown command. Use check, capture or exercise.');
+  else if (command === 'check-logs')
+    console.log(JSON.stringify(await waitReady(true), null, 2));
+  else if (command === 'exercise-logs') await exercise(true);
+  else
+    throw new Error(
+      'Unknown command. Use check, capture, exercise, check-logs or exercise-logs.',
+    );
 }
 if (
   process.argv[1] &&

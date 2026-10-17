@@ -1,3 +1,5 @@
 *
 !app.py
 !Dockerfile
+
+!log_exporter.py

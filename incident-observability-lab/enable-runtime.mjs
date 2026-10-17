@@ -10,7 +10,9 @@ try {
   if (!existsSync(workspace)) throw new Error('Workspace must already exist.');
   const audit = JSON.parse(readFileSync(process.argv[3], 'utf8'));
   if (
-    audit.mode !== 'prometheus_lab_integration' ||
+    !['prometheus_lab_integration', 'observability_lab_integration'].includes(
+      audit.mode,
+    ) ||
     audit.data_mode !== 'live_lab' ||
     audit.passed !== true
   )
@@ -26,6 +28,11 @@ try {
     workflow: 'staged',
     window_seconds: windowSeconds,
     end: scope.end,
+    ...(audit.mode === 'observability_lab_integration' &&
+    audit.logs?.status === 'ok' &&
+    audit.logs?.evidence?.length
+      ? { logs: true }
+      : {}),
   };
   const file = path.join(workspace, 'incident-demo.config.json');
   if (existsSync(file)) copyFileSync(file, `${file}.backup-${Date.now()}`);

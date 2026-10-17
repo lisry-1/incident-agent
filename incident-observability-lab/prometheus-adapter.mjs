@@ -33,7 +33,7 @@ export function validateLabBase(value) {
   return url;
 }
 
-async function readJson(response) {
+export async function readJson(response) {
   const reader = response.body?.getReader();
   if (!reader) fail('INVALID_RESPONSE', 'Missing response body.');
   let bytes = 0;

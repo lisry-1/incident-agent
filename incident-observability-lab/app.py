@@ -6,8 +6,11 @@ import time
 import uuid
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from log_exporter import LokiPublisher
 
 LOCK = threading.Lock()
+LOG_LOCK = threading.Lock()
+LOGGER = None
 STATE = {"mode": "healthy", "200": 0, "503": 0, "sum": 0.0, "count": 0}
 BOUNDS = [0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0]
 BUCKETS = {b: 0 for b in BOUNDS}
@@ -47,7 +50,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         if self.path == '/health':
-            return self.respond(200, {'status': 'ok', 'data_mode': 'live_lab'})
+            return self.respond(200, {'status': 'ok', 'data_mode': 'live_lab',
+                                      'log_exporter': LOGGER.snapshot() if LOGGER else {'enabled': False}})
         if self.path == '/metrics':
             return self.respond(200, metrics(), 'text/plain; version=0.0.4; charset=utf-8')
         if self.path != '/checkout':
@@ -66,14 +70,21 @@ class Handler(BaseHTTPRequestHandler):
             for b in BOUNDS:
                 if elapsed <= b:
                     BUCKETS[b] += 1
-        trace_id = uuid.uuid4().hex
-        print(json.dumps({'timestamp': datetime.now(timezone.utc).isoformat(),
-                          'service': 'checkout-api', 'namespace': 'demo',
-                          'status': status, 'duration_ms': round(elapsed * 1000, 3),
-                          'request_id': trace_id, 'fault_injected': mode == 'fault',
-                          'data_mode': 'live_lab'}), flush=True)
+        request_id = uuid.uuid4().hex
+        with LOG_LOCK:
+            timestamp_ns = time.time_ns()
+            stamp = datetime.fromtimestamp(timestamp_ns // 1_000_000_000, timezone.utc)
+            timestamp = stamp.strftime('%Y-%m-%dT%H:%M:%S') + f'.{timestamp_ns // 1_000_000 % 1000:03d}Z'
+            record = {'timestamp': timestamp, 'service': 'checkout-api', 'namespace': 'demo',
+                      'status': status, 'duration_ms': round(elapsed * 1000, 3),
+                      'request_id': request_id, 'fault_injected': mode == 'fault',
+                      'data_mode': 'live_lab', 'level': 'ERROR' if status == 503 else 'INFO',
+                      'message': 'Injected HTTP 503 in local experiment' if status == 503 else 'Checkout request completed'}
+            print(json.dumps(record), flush=True)
+            if LOGGER:
+                LOGGER.emit(timestamp_ns, record)
         self.respond(status, {'status': 'ok' if status == 200 else 'injected_failure',
-                              'request_id': trace_id, 'data_mode': 'live_lab'})
+                              'request_id': request_id, 'data_mode': 'live_lab'})
 
     def do_POST(self):
         # Local operator-only experiment control. Not exposed as an Agent tool.
@@ -96,6 +107,9 @@ class Handler(BaseHTTPRequestHandler):
 
 
 if __name__ == '__main__':
+    if os.getenv('LOKI_PUSH_URL'):
+        LOGGER = LokiPublisher(os.environ['LOKI_PUSH_URL'])
+        LOGGER.start()
     server = ThreadingHTTPServer((os.getenv('LAB_BIND', '0.0.0.0'), int(os.getenv('LAB_PORT', '8080'))), Handler)
     server.daemon_threads = True
     server.serve_forever()

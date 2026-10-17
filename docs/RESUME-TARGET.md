@@ -57,4 +57,10 @@
 
 用户本地 run_id 49379826-04f3-4f59-9d1d-cb48677c79bb 已确认 probe→deep、四次深层查询和一次时间线生成，共八条合成证据。模型报告存在时间差计算错误、扩大 trace/pod 关联、将查询成功误称完整覆盖和提出超出固定窗口的查询建议；这些是报告评测待修项。
 
-新增 incident-observability-lab：真实 HTTP 故障注入服务、Prometheus Compose 配置及固定模板只读 HTTP 适配器。10 项适配器测试和3项本地 HTTP 应用测试通过；真实 Docker/Prometheus 集成已由用户验证（run 010b9122-75d7-4ee2-9566-d01868127f93，336 次请求）。Miniclaw 异步接入已实现并通过保护与适配器测试，实际模型端到端验收待执行。namespace 此时只是指标标签，不能计作 Kubernetes 已接入。
+新增 incident-observability-lab：真实 HTTP 故障注入服务、Prometheus Compose 配置及固定模板只读 HTTP 适配器。10 项适配器测试和3项本地 HTTP 应用测试通过；真实 Docker/Prometheus 集成已由用户验证（run 010b9122-75d7-4ee2-9566-d01868127f93，336 次请求）。Miniclaw 异步接入已实现并通过保护与适配器测试，纯指标模型与审计已核对：ec96d90b-182a-4924-80db-ad702cecd823，18 条指标、probe→deep、logs unavailable、timeline 18 条。namespace 此时只是指标标签，不能计作 Kubernetes 已接入。
+
+## Loki 日志实现进展
+
+新增本地 Loki 3.7.0、实验服务异步日志写入、固定 503 筛选的只读 LogQL 适配器，并通过 logs=true 接入已有 Harness/Pi/时间线。支持边界校验、纳秒原时间保留、200 条上限与截断标记。请求 ID 不伪装成 trace_id；未实现 Jaeger 或 Kubernetes。
+
+63 项 Node、7 项 Python 测试及原 Pi Session 9 项检查通过。实际 Loki 容器、请求 ID 完整对照实验、模型调用与审计验收待用户本地执行，不能计作已通过；日志写入队列为内存队列，失败可丢弃且有计数，不具备生产可靠投递保证。

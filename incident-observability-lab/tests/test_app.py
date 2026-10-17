@@ -1,10 +1,13 @@
 import importlib.util
+import sys
 import json
 from pathlib import Path
 import threading
 import unittest
 import urllib.request
 from urllib.error import HTTPError
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 spec = importlib.util.spec_from_file_location('lab_app', Path(__file__).resolve().parents[1] / 'app.py')
 app = importlib.util.module_from_spec(spec)
