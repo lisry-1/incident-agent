@@ -89,6 +89,55 @@ export function checkTarget(t) {
       'Only the pinned local checkout container is supported.',
     );
 }
+export function checkRollbackTarget(t) {
+  keys(t, [
+    'cluster',
+    'namespace',
+    'deployment',
+    'deployment_uid',
+    'generation',
+    'current_revision',
+    'current_template_digest',
+    'stable_replicaset',
+    'stable_replicaset_uid',
+    'stable_revision',
+    'stable_template_digest',
+  ]);
+  if (
+    t.cluster !== 'incident-lab' ||
+    t.namespace !== 'demo' ||
+    t.deployment !== 'checkout-release' ||
+    !UUID.test(t.deployment_uid) ||
+    !UUID.test(t.stable_replicaset_uid) ||
+    !/^checkout-release-[a-z0-9]{5,16}$/.test(t.stable_replicaset) ||
+    ![t.generation, t.current_revision, t.stable_revision].every(
+      (n) => Number.isSafeInteger(n) && n > 0,
+    ) ||
+    t.stable_revision >= t.current_revision ||
+    ![t.current_template_digest, t.stable_template_digest].every((s) =>
+      /^[a-f0-9]{64}$/.test(s),
+    ) ||
+    t.current_template_digest === t.stable_template_digest
+  )
+    fail(
+      'SCOPE_DENIED',
+      'Only the bound previous revision of local checkout-release is supported.',
+    );
+}
+function actionParameters(action, target) {
+  if (action === 'restart_container') {
+    checkTarget(target);
+    return { signal: 'SIGTERM', pid: 1 };
+  }
+  if (action === 'rollback_deployment') {
+    checkRollbackTarget(target);
+    return {
+      strategy: 'restore_pod_template',
+      template_digest: target.stable_template_digest,
+    };
+  }
+  fail('ACTION_DENIED', 'Unsupported local action.');
+}
 export class ApprovalStore {
   constructor(directory, { clock = () => Date.now() } = {}) {
     this.directory = directory;
@@ -143,9 +192,7 @@ export class ApprovalStore {
     );
   }
   create({ action, target, evidence_digest, evidence_run_id, scope, reason }) {
-    if (action !== 'restart_container')
-      fail('ACTION_DENIED', 'Only local container restart is implemented.');
-    checkTarget(target);
+    const parameters = actionParameters(action, target);
     if (
       !/^[a-f0-9]{64}$/.test(evidence_digest) ||
       !UUID.test(evidence_run_id ?? '')
@@ -172,7 +219,7 @@ export class ApprovalStore {
       proposal_id: randomUUID(),
       action,
       target: structuredClone(target),
-      parameters: { signal: 'SIGTERM', pid: 1 },
+      parameters,
       evidence_digest,
       evidence_run_id,
       scope: structuredClone(scope),
@@ -238,10 +285,9 @@ export class ApprovalStore {
       )
     )
       fail('PROPOSAL_TAMPERED', 'Proposal signature or identity is invalid.');
-    checkTarget(p.target);
     if (
-      p.action !== 'restart_container' ||
-      canonical(p.parameters) !== canonical({ signal: 'SIGTERM', pid: 1 })
+      canonical(p.parameters) !==
+      canonical(actionParameters(p.action, p.target))
     )
       fail('ACTION_DENIED', 'Unsupported execution parameters.');
     if (

@@ -114,6 +114,40 @@ class AppTests(unittest.TestCase):
         self.assertEqual(self.fetch('/control/mode')[0], 404)
         self.assertEqual(app.STATE['mode'], before)
 
+    def test_release_regression_starts_faulty_and_exposes_actual_release(self):
+        import os
+        import socket
+        import subprocess
+        import time
+        with socket.socket() as sock:
+            sock.bind(('127.0.0.1', 0))
+            port = sock.getsockname()[1]
+        process = subprocess.Popen(
+            [sys.executable, str(Path(__file__).resolve().parents[1] / 'app.py')],
+            env={'PATH': os.environ.get('PATH', ''), 'LAB_BIND': '127.0.0.1',
+                 'LAB_PORT': str(port), 'LAB_INITIAL_MODE': 'fault', 'LAB_RELEASE': 'regression-v2'},
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        try:
+            health = None
+            for _ in range(50):
+                try:
+                    with urllib.request.urlopen(f'http://127.0.0.1:{port}/health', timeout=.2) as response:
+                        health = json.load(response)
+                    break
+                except OSError:
+                    time.sleep(.02)
+            self.assertIsNotNone(health)
+            self.assertEqual(health['mode'], 'fault')
+            self.assertEqual(health['release'], 'regression-v2')
+            for route in ['/ready', '/checkout']:
+                with self.assertRaises(HTTPError) as error:
+                    urllib.request.urlopen(f'http://127.0.0.1:{port}{route}', timeout=2)
+                self.assertEqual(error.exception.code, 503)
+                error.exception.close()
+        finally:
+            process.terminate()
+            process.wait(timeout=2)
+
 
 if __name__ == '__main__':
     unittest.main()

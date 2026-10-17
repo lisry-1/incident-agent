@@ -16,7 +16,10 @@ LOG_LOCK = threading.Lock()
 LOGGER = None
 TRACER = None
 INSTANCE_ID = uuid.uuid4().hex
-STATE = {"mode": "healthy", "200": 0, "503": 0, "sum": 0.0, "count": 0}
+INITIAL_MODE = os.getenv('LAB_INITIAL_MODE', 'healthy')
+if INITIAL_MODE not in ('healthy', 'fault'):
+    raise ValueError('Invalid local experiment initial mode')
+STATE = {"mode": INITIAL_MODE, "200": 0, "503": 0, "sum": 0.0, "count": 0}
 BOUNDS = [0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0]
 BUCKETS = {b: 0 for b in BOUNDS}
 LABELS = 'service="checkout-api",namespace="demo"'
@@ -59,7 +62,8 @@ class Handler(BaseHTTPRequestHandler):
                                       'log_exporter': LOGGER.snapshot() if LOGGER else {'enabled': False},
                                       'trace_exporter': TRACER.snapshot() if TRACER else {'enabled': False},
                                       'instance_id': INSTANCE_ID, 'mode': STATE['mode'],
-                                      'pod_uid': os.getenv('POD_UID')})
+                                      'pod_uid': os.getenv('POD_UID'),
+                                      'release': os.getenv('LAB_RELEASE', 'unversioned')})
         if self.path == '/ready':
             with LOCK:
                 ready = STATE['mode'] == 'healthy'

@@ -81,7 +81,10 @@ boundary.write_tool_denied =
   ).code === 'ROUTE_DENIED';
 if (!Object.values(boundary).every(Boolean))
   throw new Error('Isolation check failed.');
-if (!config.model) {
+if (config.workflow === 'rollback') {
+  const { runRollback } = await import('./rollback-worker.mjs');
+  await runRollback({ call, boundary });
+} else if (!config.model) {
   const counts = {};
   for (const [tool, source] of [
     ['incident.probe', 'metrics'],

@@ -45,7 +45,15 @@ export async function appHealth() {
   return body;
 }
 
-export function validateExecutorConfig(cfg) {
+export function validateExecutorConfig(cfg, identity = 'incident-executor') {
+  if (
+    ![
+      'incident-executor',
+      'incident-release-reader',
+      'incident-release-executor',
+    ].includes(identity)
+  )
+    fail('INVALID_CREDENTIALS', 'Unknown execution identity.');
   const exact = (obj, names) =>
     obj && Object.keys(obj).sort().join(',') === [...names].sort().join(',');
   if (
@@ -59,7 +67,7 @@ export function validateExecutorConfig(cfg) {
     ]) ||
     cfg.apiVersion !== 'v1' ||
     cfg.kind !== 'Config' ||
-    cfg['current-context'] !== 'incident-executor' ||
+    cfg['current-context'] !== identity ||
     cfg.clusters?.length !== 1 ||
     cfg.users?.length !== 1 ||
     cfg.contexts?.length !== 1
@@ -70,13 +78,13 @@ export function validateExecutorConfig(cfg) {
     context = cfg.contexts[0];
   if (
     cluster.name !== 'incident-lab' ||
-    user.name !== 'incident-executor' ||
-    context.name !== 'incident-executor' ||
+    user.name !== identity ||
+    context.name !== identity ||
     !exact(cluster.cluster, ['server', 'certificate-authority-data']) ||
     !exact(user.user, ['token']) ||
     !exact(context.context, ['cluster', 'user', 'namespace']) ||
     context.context.cluster !== 'incident-lab' ||
-    context.context.user !== 'incident-executor' ||
+    context.context.user !== identity ||
     context.context.namespace !== 'demo'
   )
     fail(
@@ -112,7 +120,7 @@ export function validateExecutorConfig(cfg) {
     fail('INVALID_CREDENTIALS', 'Invalid token claims.');
   }
   if (
-    claims.sub !== 'system:serviceaccount:demo:incident-executor' ||
+    claims.sub !== `system:serviceaccount:demo:${identity}` ||
     !Number.isSafeInteger(claims.exp) ||
     claims.exp * 1000 <= Date.now()
   )

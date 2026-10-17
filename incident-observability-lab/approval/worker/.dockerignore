@@ -4,3 +4,4 @@
 !package-lock.json
 !worker.mjs
 !model-state.mjs
+!rollback-worker.mjs

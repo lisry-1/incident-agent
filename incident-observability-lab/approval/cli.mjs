@@ -1,4 +1,4 @@
-import { execFileSync, spawn } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import {
   readFileSync,
   writeFileSync,
@@ -11,6 +11,8 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { ApprovalStore, digest, fail } from './store.mjs';
 import { startGateway } from './gateway.mjs';
+import { runIsolatedWorker } from './isolated-runner.mjs';
+import { executeRollback, releaseBackend } from './rollback.mjs';
 import { appHealth, executorBackend, executeRestart } from './executor.mjs';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const directory = path.join(root, 'data/incident-approval');
@@ -268,140 +270,34 @@ async function diagnose(model) {
       targetSnapshot: target,
       modelKey: key,
     });
-    const config = path.join(directory, 'ipc/session.json');
-    if (existsSync(config)) chmodSync(config, 0o600);
-    writeFileSync(config, JSON.stringify({ scope, model }), { mode: 0o444 });
-    chmodSync(config, 0o444);
-    const name = 'incident-diagnosis-' + Date.now();
-    const args = [
-      'run',
-      '--name',
-      name,
-      '--network',
-      'none',
-      '--read-only',
-      '--cap-drop',
-      'ALL',
-      '--security-opt',
-      'no-new-privileges:true',
-      '--user',
-      '65532:65532',
-      '--pids-limit',
-      '64',
-      '--memory',
-      '256m',
-      '--cpus',
-      '0.5',
-      '--mount',
-      `type=bind,source=${gateway.socket},target=/ipc/gateway.sock,readonly`,
-      '--mount',
-      `type=bind,source=${config},target=/ipc/session.json,readonly`,
-      'incident-diagnosis:v10',
-    ];
-    const child = spawn('docker', args, {
-      cwd: root,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
-    let stdout = '',
-      stderr = '';
-    child.stdout.on('data', (b) => {
-      stdout += b;
-      if (stdout.length > 2 * 1024 * 1024) child.kill('SIGTERM');
-    });
-    child.stderr.on('data', (b) => {
-      stderr += b;
-      if (stderr.length > 65536) stderr = stderr.slice(-65536);
-    });
-    let code;
-    try {
-      code = await new Promise((resolve, reject) => {
-        const timer = setTimeout(() => child.kill('SIGTERM'), 240000);
-        child.on('error', (e) => {
-          clearTimeout(timer);
-          reject(e);
-        });
-        child.on('exit', (c) => {
-          clearTimeout(timer);
-          resolve(c);
-        });
-      });
-      const inspect = JSON.parse(
-        execFileSync('docker', ['inspect', name], {
-          encoding: 'utf8',
-          timeout: 10000,
-        }),
-      )[0];
-      const isolation = {
-        network_none: inspect.HostConfig.NetworkMode === 'none',
-        root_read_only: inspect.HostConfig.ReadonlyRootfs === true,
-        no_privileged: inspect.HostConfig.Privileged === false,
-        user: inspect.Config.User,
-        mounts: inspect.Mounts.map((m) => ({
-          destination: m.Destination,
-          read_only: !m.RW,
-        })),
-      };
-      let worker;
-      try {
-        worker = JSON.parse(stdout.trim().split('\n').at(-1));
-      } catch {
-        worker = { error: 'Worker did not return a JSON report.' };
-      }
-      const reportFile = path.join(directory, 'last-worker-report.json');
-      writeFileSync(
-        reportFile,
-        JSON.stringify({ recorded_at: new Date().toISOString(), llm_called: model,
-          exit_code: code, isolation, worker, stderr }, null, 2) + '\n',
-        { mode: 0o600 },
+    const { worker, isolation, reportFile } = await runIsolatedWorker(
+      root,
+      gateway,
+      { scope, model },
+    );
+    if (!gateway.proposal)
+      fail(
+        'PROPOSAL_MISSING',
+        `Worker did not create a pending proposal. ${worker.agent_error ?? worker.last_assistant?.error_message ?? worker.last_assistant?.stop_reason ?? worker.error ?? ''} Details: ${reportFile}. No restart executed.`,
       );
-      if (code !== 0)
-        fail(
-          'DIAGNOSIS_FAILED',
-          `Isolated worker failed: ${stderr.slice(-1500)}`,
-        );
-      if (!gateway.proposal)
-        fail(
-          'PROPOSAL_MISSING',
-          `Worker did not create a pending proposal. ${worker.agent_error ?? worker.last_assistant?.error_message ?? worker.last_assistant?.stop_reason ?? worker.error ?? ''} Details: ${reportFile}. No restart executed.`,
-        );
-      if (
-        !isolation.network_none ||
-        !isolation.root_read_only ||
-        !isolation.no_privileged ||
-        isolation.user !== '65532:65532' ||
-        isolation.mounts.length !== 2 ||
-        !isolation.mounts.every((m) => m.read_only)
-      )
-        fail(
-          'ISOLATION_FAILED',
-          'Container inspection did not match required isolation.',
-        );
-      const result = {
-        status: 'pending_human_approval',
-        llm_called: model,
-        proposal_id: gateway.proposal.proposal.proposal_id,
-        proposal_digest: gateway.proposal.proposal_digest,
-        proposal: gateway.proposal.proposal,
-        isolation,
-        worker,
-        diagnosis_audit: gateway.guard.auditFile,
-        note: 'Fault intentionally remains in this local lab. Review then approve and execute, or use restore to stop the experiment. No proposal-triggered restart has been executed.',
-      };
-      writeFileSync(
-        path.join(directory, 'latest-diagnosis.json'),
-        JSON.stringify(result, null, 2) + '\n',
-        { mode: 0o600 },
-      );
-      proposalCreated = true;
-      console.log(JSON.stringify(result, null, 2));
-    } finally {
-      try {
-        execFileSync('docker', ['rm', '-f', name], {
-          stdio: 'ignore',
-          timeout: 15000,
-        });
-      } catch {}
-    }
+    const result = {
+      status: 'pending_human_approval',
+      llm_called: model,
+      proposal_id: gateway.proposal.proposal.proposal_id,
+      proposal_digest: gateway.proposal.proposal_digest,
+      proposal: gateway.proposal.proposal,
+      isolation,
+      worker,
+      diagnosis_audit: gateway.guard.auditFile,
+      note: 'Fault intentionally remains in this local lab. Review then approve and execute, or use restore to stop the experiment. No proposal-triggered restart has been executed.',
+    };
+    writeFileSync(
+      path.join(directory, 'latest-diagnosis.json'),
+      JSON.stringify(result, null, 2) + '\n',
+      { mode: 0o600 },
+    );
+    proposalCreated = true;
+    console.log(JSON.stringify(result, null, 2));
   } finally {
     await gateway?.close();
     if (!proposalCreated) await mode('healthy');
@@ -437,8 +333,7 @@ async function approve(id) {
       {
         review: p,
         proposal_digest: hash,
-        notice:
-          'This approves exactly one local container restart, not arbitrary commands. Verify the target, evidence and parameters.',
+        notice: `This approves exactly one local ${p.action} action. Verify the target, evidence and parameters.`,
       },
       null,
       2,
@@ -473,11 +368,18 @@ function archiveVerified(receipt) {
     readFileSync(path.join(directory, 'approvals', id + '.json'), 'utf8'),
   );
   const runId = issued.proposal.evidence_run_id;
+  const rollback = issued.proposal.action === 'rollback_deployment';
   const evidence = JSON.parse(
     readFileSync(path.join(directory, 'evidence-' + runId + '.json'), 'utf8'),
   );
   const diagnosis = JSON.parse(
-    readFileSync(path.join(directory, 'latest-diagnosis.json'), 'utf8'),
+    readFileSync(
+      path.join(
+        directory,
+        rollback ? 'latest-release-diagnosis.json' : 'latest-diagnosis.json',
+      ),
+      'utf8',
+    ),
   );
   if (diagnosis.proposal_id !== id)
     fail(
@@ -493,7 +395,9 @@ function archiveVerified(receipt) {
     }),
   );
   const domain_audit = readFileSync(
-    path.join(directory, 'diagnosis-audit', runId + '.jsonl'),
+    rollback
+      ? path.join(root, 'data/incident-rollback/audit-' + runId + '.jsonl')
+      : path.join(directory, 'diagnosis-audit', runId + '.jsonl'),
     'utf8',
   )
     .trim()
@@ -501,7 +405,9 @@ function archiveVerified(receipt) {
     .map(JSON.parse);
   const report = {
     schema_version: 1,
-    mode: 'controlled_restart_integration',
+    mode: rollback
+      ? 'controlled_deployment_rollback'
+      : 'controlled_restart_integration',
     data_mode: 'live_lab',
     llm_called: diagnosis.llm_called,
     passed: true,
@@ -510,7 +416,12 @@ function archiveVerified(receipt) {
     receipt,
     public_keys,
     executor_rbac: JSON.parse(
-      readFileSync(path.join(directory, 'executor-rbac-check.json'), 'utf8'),
+      readFileSync(
+        rollback
+          ? path.join(root, 'data/incident-rollback/rbac-check.json')
+          : path.join(directory, 'executor-rbac-check.json'),
+        'utf8',
+      ),
     ),
     diagnosis,
     evidence,
@@ -518,7 +429,9 @@ function archiveVerified(receipt) {
   };
   const destination = path.join(
     root,
-    'docs/evidence/approval-restart-run.json',
+    rollback
+      ? 'docs/evidence/approval-rollback-run.json'
+      : 'docs/evidence/approval-restart-run.json',
   );
   mkdirSync(path.dirname(destination), { recursive: true });
   writeFileSync(destination, JSON.stringify(report, null, 2) + '\n', {
@@ -544,7 +457,9 @@ async function main() {
   else if (command === 'execute' && process.argv.length === 4) {
     verifyEvidence(store.read(id));
     const receipt = await store.execute(id, (p) =>
-      executeRestart(p, executorBackend(root)),
+      p.action === 'rollback_deployment'
+        ? executeRollback(p, releaseBackend(root, 'executor'))
+        : executeRestart(p, executorBackend(root)),
     );
     const archive =
       receipt.status === 'verified' ? archiveVerified(receipt) : undefined;

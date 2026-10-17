@@ -1,6 +1,6 @@
 # 独立诊断容器、人工审批与受控重启
 
-本轮新增一条独立流程：隔离诊断 → 证据绑定 Proposal → 人工签名 → 一次性执行 → 实测验证。首个执行动作是本地实验 Pod checkout-k8s 中 checkout 容器的一次重启。Deployment 版本回滚尚未实现，不把该动作称为发布回滚或生产自动修复。
+本轮新增一条独立流程：隔离诊断 → 证据绑定 Proposal → 人工签名 → 一次性执行 → 实测验证。首个执行动作是本地实验 Pod checkout-k8s 中 checkout 容器的一次重启。本页记录重启流程；新增 Deployment 配置回滚见 [回滚验收](ROLLBACK.md)，不把重启称为发布回滚或生产自动修复。
 
 ## 信任与权限分离
 
@@ -106,9 +106,9 @@ v10.1 修复 Pi 在 prompt 开始时复制工具列表后的同步问题：通�
 
 开发环境通过 104 项 Node 测试、15 项 Python 测试、Runner 构建及既有 Pi Session 阶段检查。新增测试包括：签名/摘要篡改、伪造批准、跨提案复制、过期、并发/重放、未知执行结果持久化、固定执行参数、实例变化拒绝、管道输入拒绝，以及受限网关的范围、阶段和路由规则。应用实际子进程的 SIGTERM 正常退出已验证。
 
-当前开发环境不允许 Unix socket bind，也没有 Docker。网关测试通过仅测试用的 127.0.0.1 临时 HTTP transport 运行相同处理逻辑；正式 CLI 固定使用 Unix socket，测试 transport 不由模型或 CLI 参数开放。真实 Docker/WSL socket 挂载与连通、实际容器隔离探测、executor RBAC、Pod 容器重启及隔离 Pi 模型请求尚待用户本地验收。未通过前不能称为实际集成完成。现有 Miniclaw Host 四源模型审计通过也不替代独立容器模型验收。
+当前开发环境不允许 Unix socket bind，也没有 Docker。网关测试通过仅测试用的 127.0.0.1 临时 HTTP transport 运行相同处理逻辑；正式 CLI 固定使用 Unix socket，测试 transport 不由模型或 CLI 参数开放。用户随后已完成真实 Docker/WSL socket、隔离探测、executor RBAC、人工审批重启及隔离 Pi 模型验收，见下方更新；这些本地实验结果不等于生产运行保证。Miniclaw Host 与独立容器的验收记录分别保留。
 
-仍待实现：Deployment 版本回滚、本项目固定模型诊断准确率/安全评测，以及最终交付整理。参考作者的 MTTR、准确率或安全百分比不能直接使用。
+Deployment 配置回滚已实现但待真实集群验收；后续仍需本项目固定模型诊断准确率/安全评测，以及最终交付整理。参考作者的 MTTR、准确率或安全百分比不能直接使用。
 
 官方依据与本地 SDK 指导：
 
@@ -116,3 +116,10 @@ v10.1 修复 Pi 在 prompt 开始时复制工具列表后的同步问题：通�
 - [Docker 运行约束、挂载与权限](https://docs.docker.com/engine/containers/run/)
 - [Kubernetes RBAC 与子资源](https://kubernetes.io/docs/reference/access-authn-authz/rbac/)
 - Pi agent-core / pi-ai：项目安装的 0.84.2 README 与类型定义；独立 worker package-lock 固定依赖。
+
+
+## 用户本地实际验收更新
+
+v10 无模型与真实隔离 Pi 模型均已完成真实人工审批重启：提案 9b351417-3b07-47d1-9d70-cf9fe7b4524b 和 8084aa8f-d30f-4d07-8456-9aec731dfecf；分别观测 restart_count 1→2、2→3、新实例 Ready/healthy，前一提案的重放返回 REPLAY_DENIED。真实模型的活动工具快照由 v10.1 修复；模型报告质量仍有聚合事件与零流量概括错误，待固定评测。开发环境的能力限制保留，用户实际结果不升级为生产恢复声明。
+
+v11 将 Docker 固定运行边界提取为共用 isolated-runner，支持独立 release 诊断 worker；共用审批 CLI 按签名中的 action 分发重启或回滚，并分别归档。原 Host 工作区通用工具仍保持开放。

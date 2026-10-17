@@ -86,3 +86,12 @@
 新增独立诊断容器、受限 Unix socket Broker、证据/目标绑定的 Ed25519 提案与人工二次签名、一次性消费记录、固定容器重启执行器和实测验证。默认集成模式不调用模型；另提供 opt-in Pi agent-core 隔离模型模式。104 项 Node、15 项 Python 测试及 Runner 构建通过；实际 Docker/WSL socket、隔离、审批重启及独立模型验收待用户执行。见 [集中步骤](../incident-observability-lab/APPROVAL.md)。
 
 本轮仅实现本地实验容器重启，Deployment 版本回滚仍待实现；宿主机与 Docker 管理员为可信控制面，不能把原 Miniclaw Host 工作区称为全局只读沙箱。后续需完成真实验收、版本回滚、固定评测与交付。
+
+
+## v10 实际验收与 v11 回滚实现
+
+用户已在本地验证独立容器、只读挂载、无网络出口、无凭据/审批/写工具路由：无模型提案 9b351417-3b07-47d1-9d70-cf9fe7b4524b，经人工签名后容器 restart_count 1→2、instance_id 改变、Ready/healthy，重复执行返回 REPLAY_DENIED。修复 Pi 活动循环工具快照同步后，真实隔离模型提案 8084aa8f-d30f-4d07-8456-9aec731dfecf（run f5acbac0-72a3-4e15-aed7-f3e72b0ac9a7）以 5 轮模型交互完成，经人工签名后 restart_count 2→3、新实例恢复。证据由用户保存 docs/evidence/approval-restart-run.json。模型曾错误地从聚合事件首末时间推断持续故障，并从上下文中的零流量样本概括整窗；这些保留为模型评测问题。
+
+v11 新增单副本 Deployment checkout-release 的实际配置修订实验：测量健康模板后发布故障模板，独立容器提出 rollback_deployment，复用人工二次签名与一次性消费机制，以 UID/resourceVersion/generation/template 条件的原子 JSON Patch 恢复已批准健康模板，并验证新 Pod Ready 与三次 HTTP 200。该实验使用 Deployment/ReplicaSet/Pod/HTTP 证据，不将旧四源数据冒充为新 Deployment 的四源诊断；同一镜像的两种启动配置修订不称为两个业务二进制版本。
+
+122 项 Node、16 项 Python 测试及 Runner 构建通过；v11 真实集群、Service proxy、RBAC 与回滚执行待用户验收，见 [Deployment 配置回滚](../incident-observability-lab/ROLLBACK.md)。验收完成后只剩固定模型评测和交付整理。本轮不扩大功能范围，也不复用参考作者的性能与准确率数字。

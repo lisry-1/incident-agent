@@ -1,0 +1,1874 @@
+{
+  "schema_version": 1,
+  "mode": "controlled_deployment_rollback",
+  "data_mode": "live_lab",
+  "llm_called": false,
+  "passed": true,
+  "issued": {
+    "proposal": {
+      "version": 1,
+      "proposal_id": "c177a358-0f93-4ae3-aa6e-ce62d5c56ddf",
+      "action": "rollback_deployment",
+      "target": {
+        "cluster": "incident-lab",
+        "namespace": "demo",
+        "deployment": "checkout-release",
+        "deployment_uid": "736d20e4-746d-4532-bf73-8294e384a792",
+        "generation": 2,
+        "current_revision": 2,
+        "current_template_digest": "9d335960c6373420e490ffbabfc587f4b3396502d9e7381599b991d4e321a1e8",
+        "stable_replicaset": "checkout-release-fc857fb48",
+        "stable_replicaset_uid": "4b93ad45-5e28-4153-83dc-7673c2dd3ca3",
+        "stable_revision": 1,
+        "stable_template_digest": "fd48e3568d8de477975e8658cc06f2430f9c14e4b61fa16680308727b01a1b34"
+      },
+      "parameters": {
+        "strategy": "restore_pod_template",
+        "template_digest": "fd48e3568d8de477975e8658cc06f2430f9c14e4b61fa16680308727b01a1b34"
+      },
+      "evidence_digest": "ab91fcc9b792d9cb679ae42de894c79113bf372cb430c6fe3d0cfa0ec366a237",
+      "evidence_run_id": "b1aab2c6-39d9-4e80-acab-7bdf2d40be69",
+      "scope": {
+        "service": "checkout-api",
+        "namespace": "demo",
+        "start": "2026-10-17T18:11:31.191Z",
+        "end": "2026-10-17T18:11:34.552Z"
+      },
+      "reason": "Local release experiment: previous template measured HTTP 200; current regression-v2 template measured three HTTP 503 responses with its Pod not Ready. Propose restoring the bound healthy template, pending human review.",
+      "created_at": 1792260694553,
+      "expires_at": 1792261294553,
+      "proposer_key_id": "5d9d855e316062b9764f02fee8af107e4fa1b308e9784dd12282a85844c16828"
+    },
+    "proposer_signature": "jaOYQYM2dlbaY+wRfOMd8Xsl6UW1QFqvkhJkTfKDxOtjK5ofbOlGE/2Z7h8M94mGlWwCMmMEZCUrRjiPprhUCQ=="
+  },
+  "approval": {
+    "approval": {
+      "version": 1,
+      "proposal_id": "c177a358-0f93-4ae3-aa6e-ce62d5c56ddf",
+      "proposal_digest": "db4c1e2cacabf533a27360e6afa7c300f509cf254d5aef7e664cbd973454288b",
+      "approved_at": 1792260918739,
+      "expires_at": 1792261038739,
+      "nonce": "a8dbec20-4667-422d-afe2-6d40dfb4759a",
+      "approver_key_id": "4f510d482ba1e5e8e0d4aad1efb0199b4ab175f0cffade22e32394cbd054b7e3"
+    },
+    "approval_signature": "QrjKryxuba6K/7+7VbJZJ1JTpL8/bDage73CjdPPSPlOIKHtG+Nx6T3dTcrf9tq3rL1v0dPTBWuKIp0TbqpzAA=="
+  },
+  "receipt": {
+    "status": "verified",
+    "proposal_id": "c177a358-0f93-4ae3-aa6e-ce62d5c56ddf",
+    "proposal_digest": "db4c1e2cacabf533a27360e6afa7c300f509cf254d5aef7e664cbd973454288b",
+    "completed_at": 1792260921905,
+    "result": {
+      "action": "rollback_deployment",
+      "deployment_uid": "736d20e4-746d-4532-bf73-8294e384a792",
+      "generation_before": 2,
+      "generation_after": 3,
+      "revision_before": 2,
+      "revision_after": 3,
+      "restored_template_digest": "fd48e3568d8de477975e8658cc06f2430f9c14e4b61fa16680308727b01a1b34",
+      "stable_replicaset_uid": "4b93ad45-5e28-4153-83dc-7673c2dd3ca3",
+      "pod_before": "d087720c-532f-4ca9-8836-ca7008c2f301",
+      "pod_after": "3a4c8c84-4fc1-40ef-8047-2d88f7a72dbe",
+      "release": "stable-v1",
+      "mode": "healthy",
+      "ready": true,
+      "http_statuses": [
+        200,
+        200,
+        200
+      ],
+      "command_reported_error": false,
+      "verification": "Previous measured healthy Pod template restored by one atomic patch; new Pod Ready and three HTTP 200 responses. Local experiment only."
+    }
+  },
+  "public_keys": {
+    "proposer": {
+      "key_id": "5d9d855e316062b9764f02fee8af107e4fa1b308e9784dd12282a85844c16828",
+      "public_key": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAiJo7lwl4IvKNsgQ2RVCjgOhSgZ86VskfdUOhFtHIBg0=\n-----END PUBLIC KEY-----\n"
+    },
+    "approver": {
+      "key_id": "4f510d482ba1e5e8e0d4aad1efb0199b4ab175f0cffade22e32394cbd054b7e3",
+      "public_key": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA/GLOv4iIHsUNSqHElTLRsT1/urpRhhLWqmCutA2/8UE=\n-----END PUBLIC KEY-----\n"
+    }
+  },
+  "executor_rbac": {
+    "passed": true,
+    "checks": [
+      {
+        "role": "reader",
+        "group": "apps",
+        "resource": "deployments",
+        "name": "checkout-release",
+        "namespace": "demo",
+        "verb": "get",
+        "expected": true,
+        "allowed": true,
+        "passed": true
+      },
+      {
+        "role": "reader",
+        "group": "apps",
+        "resource": "deployments",
+        "name": "checkout-release",
+        "namespace": "demo",
+        "verb": "patch",
+        "expected": false,
+        "allowed": false,
+        "passed": true
+      },
+      {
+        "role": "reader",
+        "group": "apps",
+        "resource": "deployments",
+        "name": "another-release",
+        "namespace": "demo",
+        "verb": "patch",
+        "expected": false,
+        "allowed": false,
+        "passed": true
+      },
+      {
+        "role": "reader",
+        "group": "apps",
+        "resource": "deployments",
+        "name": "checkout-release",
+        "namespace": "production",
+        "verb": "patch",
+        "expected": false,
+        "allowed": false,
+        "passed": true
+      },
+      {
+        "role": "reader",
+        "group": "",
+        "resource": "services",
+        "subresource": "proxy",
+        "name": "checkout-release",
+        "namespace": "demo",
+        "verb": "get",
+        "expected": true,
+        "allowed": true,
+        "passed": true
+      },
+      {
+        "role": "reader",
+        "group": "",
+        "resource": "services",
+        "subresource": "proxy",
+        "name": "checkout-release",
+        "namespace": "demo",
+        "verb": "create",
+        "expected": false,
+        "allowed": false,
+        "passed": true
+      },
+      {
+        "role": "reader",
+        "group": "",
+        "resource": "pods",
+        "subresource": "exec",
+        "name": "checkout-k8s",
+        "namespace": "demo",
+        "verb": "create",
+        "expected": false,
+        "allowed": false,
+        "passed": true
+      },
+      {
+        "role": "reader",
+        "group": "",
+        "resource": "secrets",
+        "namespace": "demo",
+        "verb": "get",
+        "expected": false,
+        "allowed": false,
+        "passed": true
+      },
+      {
+        "role": "executor",
+        "group": "apps",
+        "resource": "deployments",
+        "name": "checkout-release",
+        "namespace": "demo",
+        "verb": "get",
+        "expected": true,
+        "allowed": true,
+        "passed": true
+      },
+      {
+        "role": "executor",
+        "group": "apps",
+        "resource": "deployments",
+        "name": "checkout-release",
+        "namespace": "demo",
+        "verb": "patch",
+        "expected": true,
+        "allowed": true,
+        "passed": true
+      },
+      {
+        "role": "executor",
+        "group": "apps",
+        "resource": "deployments",
+        "name": "another-release",
+        "namespace": "demo",
+        "verb": "patch",
+        "expected": false,
+        "allowed": false,
+        "passed": true
+      },
+      {
+        "role": "executor",
+        "group": "apps",
+        "resource": "deployments",
+        "name": "checkout-release",
+        "namespace": "production",
+        "verb": "patch",
+        "expected": false,
+        "allowed": false,
+        "passed": true
+      },
+      {
+        "role": "executor",
+        "group": "",
+        "resource": "services",
+        "subresource": "proxy",
+        "name": "checkout-release",
+        "namespace": "demo",
+        "verb": "get",
+        "expected": true,
+        "allowed": true,
+        "passed": true
+      },
+      {
+        "role": "executor",
+        "group": "",
+        "resource": "services",
+        "subresource": "proxy",
+        "name": "checkout-release",
+        "namespace": "demo",
+        "verb": "create",
+        "expected": false,
+        "allowed": false,
+        "passed": true
+      },
+      {
+        "role": "executor",
+        "group": "",
+        "resource": "pods",
+        "subresource": "exec",
+        "name": "checkout-k8s",
+        "namespace": "demo",
+        "verb": "create",
+        "expected": false,
+        "allowed": false,
+        "passed": true
+      },
+      {
+        "role": "executor",
+        "group": "",
+        "resource": "secrets",
+        "namespace": "demo",
+        "verb": "get",
+        "expected": false,
+        "allowed": false,
+        "passed": true
+      }
+    ]
+  },
+  "diagnosis": {
+    "status": "pending_human_approval",
+    "llm_called": false,
+    "proposal_id": "c177a358-0f93-4ae3-aa6e-ce62d5c56ddf",
+    "proposal_digest": "db4c1e2cacabf533a27360e6afa7c300f509cf254d5aef7e664cbd973454288b",
+    "proposal": {
+      "version": 1,
+      "proposal_id": "c177a358-0f93-4ae3-aa6e-ce62d5c56ddf",
+      "action": "rollback_deployment",
+      "target": {
+        "cluster": "incident-lab",
+        "namespace": "demo",
+        "deployment": "checkout-release",
+        "deployment_uid": "736d20e4-746d-4532-bf73-8294e384a792",
+        "generation": 2,
+        "current_revision": 2,
+        "current_template_digest": "9d335960c6373420e490ffbabfc587f4b3396502d9e7381599b991d4e321a1e8",
+        "stable_replicaset": "checkout-release-fc857fb48",
+        "stable_replicaset_uid": "4b93ad45-5e28-4153-83dc-7673c2dd3ca3",
+        "stable_revision": 1,
+        "stable_template_digest": "fd48e3568d8de477975e8658cc06f2430f9c14e4b61fa16680308727b01a1b34"
+      },
+      "parameters": {
+        "strategy": "restore_pod_template",
+        "template_digest": "fd48e3568d8de477975e8658cc06f2430f9c14e4b61fa16680308727b01a1b34"
+      },
+      "evidence_digest": "ab91fcc9b792d9cb679ae42de894c79113bf372cb430c6fe3d0cfa0ec366a237",
+      "evidence_run_id": "b1aab2c6-39d9-4e80-acab-7bdf2d40be69",
+      "scope": {
+        "service": "checkout-api",
+        "namespace": "demo",
+        "start": "2026-10-17T18:11:31.191Z",
+        "end": "2026-10-17T18:11:34.552Z"
+      },
+      "reason": "Local release experiment: previous template measured HTTP 200; current regression-v2 template measured three HTTP 503 responses with its Pod not Ready. Propose restoring the bound healthy template, pending human review.",
+      "created_at": 1792260694553,
+      "expires_at": 1792261294553,
+      "proposer_key_id": "5d9d855e316062b9764f02fee8af107e4fa1b308e9784dd12282a85844c16828"
+    },
+    "isolation": {
+      "network_none": true,
+      "root_read_only": true,
+      "no_privileged": true,
+      "user": "65532:65532",
+      "mounts": [
+        {
+          "destination": "/ipc/gateway.sock",
+          "read_only": true
+        },
+        {
+          "destination": "/ipc/session.json",
+          "read_only": true
+        }
+      ]
+    },
+    "worker": {
+      "mode": "isolated_release_rollback_smoke_test",
+      "llm_called": false,
+      "boundary": {
+        "direct_network_denied": true,
+        "docker_socket_absent": true,
+        "broker_key_absent": true,
+        "operator_keys_absent": true,
+        "kube_credentials_absent": true,
+        "root_write_denied": true,
+        "approval_route_denied": true,
+        "write_tool_denied": true
+      },
+      "observed": {
+        "status": "observed",
+        "data_mode": "live_lab",
+        "target": {
+          "cluster": "incident-lab",
+          "namespace": "demo",
+          "deployment": "checkout-release",
+          "deployment_uid": "736d20e4-746d-4532-bf73-8294e384a792",
+          "generation": 2,
+          "current_revision": 2,
+          "current_template_digest": "9d335960c6373420e490ffbabfc587f4b3396502d9e7381599b991d4e321a1e8",
+          "stable_replicaset": "checkout-release-fc857fb48",
+          "stable_replicaset_uid": "4b93ad45-5e28-4153-83dc-7673c2dd3ca3",
+          "stable_revision": 1,
+          "stable_template_digest": "fd48e3568d8de477975e8658cc06f2430f9c14e4b61fa16680308727b01a1b34"
+        },
+        "healthy_baseline": {
+          "checked_at": "2026-10-17T18:11:31.191Z",
+          "deployment_uid": "736d20e4-746d-4532-bf73-8294e384a792",
+          "template_digest": "fd48e3568d8de477975e8658cc06f2430f9c14e4b61fa16680308727b01a1b34",
+          "http_status": 200,
+          "release": "stable-v1",
+          "pod_uid": "53b43171-97d9-4d76-acc2-81f26683e5d0",
+          "instance_id": "a4312f8f8ad34160ab1daea88a1a4621",
+          "http_statuses": [
+            200,
+            200,
+            200
+          ]
+        },
+        "fault_checks": [
+          503,
+          503,
+          503
+        ],
+        "fault_health": {
+          "status": "ok",
+          "data_mode": "live_lab",
+          "log_exporter": {
+            "enabled": false
+          },
+          "trace_exporter": {
+            "enabled": false
+          },
+          "instance_id": "d718b50c768b4b6eaf659a7d3baf49b1",
+          "mode": "fault",
+          "pod_uid": "d087720c-532f-4ca9-8836-ca7008c2f301",
+          "release": "regression-v2"
+        },
+        "note": "Release API and HTTP evidence only; not a four-source diagnosis of this Deployment."
+      },
+      "proposal": {
+        "status": "pending_human_approval",
+        "proposal": {
+          "version": 1,
+          "proposal_id": "c177a358-0f93-4ae3-aa6e-ce62d5c56ddf",
+          "action": "rollback_deployment",
+          "target": {
+            "cluster": "incident-lab",
+            "namespace": "demo",
+            "deployment": "checkout-release",
+            "deployment_uid": "736d20e4-746d-4532-bf73-8294e384a792",
+            "generation": 2,
+            "current_revision": 2,
+            "current_template_digest": "9d335960c6373420e490ffbabfc587f4b3396502d9e7381599b991d4e321a1e8",
+            "stable_replicaset": "checkout-release-fc857fb48",
+            "stable_replicaset_uid": "4b93ad45-5e28-4153-83dc-7673c2dd3ca3",
+            "stable_revision": 1,
+            "stable_template_digest": "fd48e3568d8de477975e8658cc06f2430f9c14e4b61fa16680308727b01a1b34"
+          },
+          "parameters": {
+            "strategy": "restore_pod_template",
+            "template_digest": "fd48e3568d8de477975e8658cc06f2430f9c14e4b61fa16680308727b01a1b34"
+          },
+          "evidence_digest": "ab91fcc9b792d9cb679ae42de894c79113bf372cb430c6fe3d0cfa0ec366a237",
+          "evidence_run_id": "b1aab2c6-39d9-4e80-acab-7bdf2d40be69",
+          "scope": {
+            "service": "checkout-api",
+            "namespace": "demo",
+            "start": "2026-10-17T18:11:31.191Z",
+            "end": "2026-10-17T18:11:34.552Z"
+          },
+          "reason": "Local release experiment: previous template measured HTTP 200; current regression-v2 template measured three HTTP 503 responses with its Pod not Ready. Propose restoring the bound healthy template, pending human review.",
+          "created_at": 1792260694553,
+          "expires_at": 1792261294553,
+          "proposer_key_id": "5d9d855e316062b9764f02fee8af107e4fa1b308e9784dd12282a85844c16828"
+        },
+        "proposal_digest": "db4c1e2cacabf533a27360e6afa7c300f509cf254d5aef7e664cbd973454288b",
+        "requires_human_approval": true
+      }
+    },
+    "diagnosis_audit": "/home/lisry/agent-projects/incident-agent/data/incident-rollback/audit-b1aab2c6-39d9-4e80-acab-7bdf2d40be69.jsonl",
+    "note": "Local regression remains pending human review. Reuses the signed approval mechanism; this is a deterministic release API/HTTP experiment, not a model four-source diagnosis."
+  },
+  "evidence": {
+    "run_id": "b1aab2c6-39d9-4e80-acab-7bdf2d40be69",
+    "scope": {
+      "service": "checkout-api",
+      "namespace": "demo",
+      "start": "2026-10-17T18:11:31.191Z",
+      "end": "2026-10-17T18:11:34.552Z"
+    },
+    "observations": [
+      {
+        "source": "measured-healthy-baseline",
+        "result": {
+          "checked_at": "2026-10-17T18:11:31.191Z",
+          "deployment_uid": "736d20e4-746d-4532-bf73-8294e384a792",
+          "template_digest": "fd48e3568d8de477975e8658cc06f2430f9c14e4b61fa16680308727b01a1b34",
+          "http_status": 200,
+          "release": "stable-v1",
+          "pod_uid": "53b43171-97d9-4d76-acc2-81f26683e5d0",
+          "instance_id": "a4312f8f8ad34160ab1daea88a1a4621",
+          "http_statuses": [
+            200,
+            200,
+            200
+          ]
+        }
+      },
+      {
+        "source": "kubernetes-release-and-http",
+        "result": {
+          "observed_at": "2026-10-17T18:11:34.550Z",
+          "deployment": {
+            "kind": "Deployment",
+            "apiVersion": "apps/v1",
+            "metadata": {
+              "name": "checkout-release",
+              "namespace": "demo",
+              "uid": "736d20e4-746d-4532-bf73-8294e384a792",
+              "resourceVersion": "20364",
+              "generation": 2,
+              "creationTimestamp": "2026-10-17T18:07:25Z",
+              "labels": {
+                "app": "incident-checkout-release"
+              },
+              "annotations": {
+                "deployment.kubernetes.io/revision": "2",
+                "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"apps/v1\",\"kind\":\"Deployment\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"incident-checkout-release\"},\"name\":\"checkout-release\",\"namespace\":\"demo\"},\"spec\":{\"progressDeadlineSeconds\":120,\"replicas\":1,\"revisionHistoryLimit\":5,\"selector\":{\"matchLabels\":{\"app\":\"incident-checkout-release\"}},\"strategy\":{\"type\":\"Recreate\"},\"template\":{\"metadata\":{\"labels\":{\"app\":\"incident-checkout-release\"}},\"spec\":{\"automountServiceAccountToken\":false,\"containers\":[{\"env\":[{\"name\":\"LAB_INITIAL_MODE\",\"value\":\"fault\"},{\"name\":\"LAB_RELEASE\",\"value\":\"regression-v2\"},{\"name\":\"POD_UID\",\"valueFrom\":{\"fieldRef\":{\"fieldPath\":\"metadata.uid\"}}}],\"image\":\"incident-checkout:k8s-v11\",\"imagePullPolicy\":\"Never\",\"name\":\"checkout\",\"ports\":[{\"containerPort\":8080}],\"readinessProbe\":{\"failureThreshold\":1,\"httpGet\":{\"path\":\"/ready\",\"port\":8080},\"initialDelaySeconds\":2,\"periodSeconds\":2},\"resources\":{\"limits\":{\"cpu\":\"250m\",\"memory\":\"96Mi\"},\"requests\":{\"cpu\":\"25m\",\"memory\":\"24Mi\"}},\"securityContext\":{\"allowPrivilegeEscalation\":false,\"capabilities\":{\"drop\":[\"ALL\"]},\"readOnlyRootFilesystem\":true}}],\"securityContext\":{\"runAsGroup\":10001,\"runAsNonRoot\":true,\"runAsUser\":10001,\"seccompProfile\":{\"type\":\"RuntimeDefault\"}}}}}}\n"
+              },
+              "managedFields": [
+                {
+                  "manager": "kube-controller-manager",
+                  "operation": "Update",
+                  "apiVersion": "apps/v1",
+                  "time": "2026-10-17T18:11:31Z",
+                  "fieldsType": "FieldsV1",
+                  "fieldsV1": {
+                    "f:metadata": {
+                      "f:annotations": {
+                        "f:deployment.kubernetes.io/revision": {}
+                      }
+                    },
+                    "f:status": {
+                      "f:conditions": {
+                        ".": {},
+                        "k:{\"type\":\"Available\"}": {
+                          ".": {},
+                          "f:lastTransitionTime": {},
+                          "f:lastUpdateTime": {},
+                          "f:message": {},
+                          "f:reason": {},
+                          "f:status": {},
+                          "f:type": {}
+                        },
+                        "k:{\"type\":\"Progressing\"}": {
+                          ".": {},
+                          "f:lastTransitionTime": {},
+                          "f:lastUpdateTime": {},
+                          "f:message": {},
+                          "f:reason": {},
+                          "f:status": {},
+                          "f:type": {}
+                        }
+                      },
+                      "f:observedGeneration": {},
+                      "f:replicas": {},
+                      "f:terminatingReplicas": {},
+                      "f:unavailableReplicas": {},
+                      "f:updatedReplicas": {}
+                    }
+                  },
+                  "subresource": "status"
+                },
+                {
+                  "manager": "kubectl-client-side-apply",
+                  "operation": "Update",
+                  "apiVersion": "apps/v1",
+                  "time": "2026-10-17T18:11:31Z",
+                  "fieldsType": "FieldsV1",
+                  "fieldsV1": {
+                    "f:metadata": {
+                      "f:annotations": {
+                        ".": {},
+                        "f:kubectl.kubernetes.io/last-applied-configuration": {}
+                      },
+                      "f:labels": {
+                        ".": {},
+                        "f:app": {}
+                      }
+                    },
+                    "f:spec": {
+                      "f:progressDeadlineSeconds": {},
+                      "f:replicas": {},
+                      "f:revisionHistoryLimit": {},
+                      "f:selector": {},
+                      "f:strategy": {
+                        "f:type": {}
+                      },
+                      "f:template": {
+                        "f:metadata": {
+                          "f:labels": {
+                            ".": {},
+                            "f:app": {}
+                          }
+                        },
+                        "f:spec": {
+                          "f:automountServiceAccountToken": {},
+                          "f:containers": {
+                            "k:{\"name\":\"checkout\"}": {
+                              ".": {},
+                              "f:env": {
+                                ".": {},
+                                "k:{\"name\":\"LAB_INITIAL_MODE\"}": {
+                                  ".": {},
+                                  "f:name": {},
+                                  "f:value": {}
+                                },
+                                "k:{\"name\":\"LAB_RELEASE\"}": {
+                                  ".": {},
+                                  "f:name": {},
+                                  "f:value": {}
+                                },
+                                "k:{\"name\":\"POD_UID\"}": {
+                                  ".": {},
+                                  "f:name": {},
+                                  "f:valueFrom": {
+                                    ".": {},
+                                    "f:fieldRef": {}
+                                  }
+                                }
+                              },
+                              "f:image": {},
+                              "f:imagePullPolicy": {},
+                              "f:name": {},
+                              "f:ports": {
+                                ".": {},
+                                "k:{\"containerPort\":8080,\"protocol\":\"TCP\"}": {
+                                  ".": {},
+                                  "f:containerPort": {},
+                                  "f:protocol": {}
+                                }
+                              },
+                              "f:readinessProbe": {
+                                ".": {},
+                                "f:failureThreshold": {},
+                                "f:httpGet": {
+                                  ".": {},
+                                  "f:path": {},
+                                  "f:port": {},
+                                  "f:scheme": {}
+                                },
+                                "f:initialDelaySeconds": {},
+                                "f:periodSeconds": {},
+                                "f:successThreshold": {},
+                                "f:timeoutSeconds": {}
+                              },
+                              "f:resources": {
+                                ".": {},
+                                "f:limits": {
+                                  ".": {},
+                                  "f:cpu": {},
+                                  "f:memory": {}
+                                },
+                                "f:requests": {
+                                  ".": {},
+                                  "f:cpu": {},
+                                  "f:memory": {}
+                                }
+                              },
+                              "f:securityContext": {
+                                ".": {},
+                                "f:allowPrivilegeEscalation": {},
+                                "f:capabilities": {
+                                  ".": {},
+                                  "f:drop": {}
+                                },
+                                "f:readOnlyRootFilesystem": {}
+                              },
+                              "f:terminationMessagePath": {},
+                              "f:terminationMessagePolicy": {}
+                            }
+                          },
+                          "f:dnsPolicy": {},
+                          "f:restartPolicy": {},
+                          "f:schedulerName": {},
+                          "f:securityContext": {
+                            ".": {},
+                            "f:runAsGroup": {},
+                            "f:runAsNonRoot": {},
+                            "f:runAsUser": {},
+                            "f:seccompProfile": {
+                              ".": {},
+                              "f:type": {}
+                            }
+                          },
+                          "f:terminationGracePeriodSeconds": {}
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "spec": {
+              "replicas": 1,
+              "selector": {
+                "matchLabels": {
+                  "app": "incident-checkout-release"
+                }
+              },
+              "template": {
+                "metadata": {
+                  "labels": {
+                    "app": "incident-checkout-release"
+                  }
+                },
+                "spec": {
+                  "containers": [
+                    {
+                      "name": "checkout",
+                      "image": "incident-checkout:k8s-v11",
+                      "ports": [
+                        {
+                          "containerPort": 8080,
+                          "protocol": "TCP"
+                        }
+                      ],
+                      "env": [
+                        {
+                          "name": "LAB_INITIAL_MODE",
+                          "value": "fault"
+                        },
+                        {
+                          "name": "LAB_RELEASE",
+                          "value": "regression-v2"
+                        },
+                        {
+                          "name": "POD_UID",
+                          "valueFrom": {
+                            "fieldRef": {
+                              "apiVersion": "v1",
+                              "fieldPath": "metadata.uid"
+                            }
+                          }
+                        }
+                      ],
+                      "resources": {
+                        "limits": {
+                          "cpu": "250m",
+                          "memory": "96Mi"
+                        },
+                        "requests": {
+                          "cpu": "25m",
+                          "memory": "24Mi"
+                        }
+                      },
+                      "readinessProbe": {
+                        "httpGet": {
+                          "path": "/ready",
+                          "port": 8080,
+                          "scheme": "HTTP"
+                        },
+                        "initialDelaySeconds": 2,
+                        "timeoutSeconds": 1,
+                        "periodSeconds": 2,
+                        "successThreshold": 1,
+                        "failureThreshold": 1
+                      },
+                      "terminationMessagePath": "/dev/termination-log",
+                      "terminationMessagePolicy": "File",
+                      "imagePullPolicy": "Never",
+                      "securityContext": {
+                        "capabilities": {
+                          "drop": [
+                            "ALL"
+                          ]
+                        },
+                        "readOnlyRootFilesystem": true,
+                        "allowPrivilegeEscalation": false
+                      }
+                    }
+                  ],
+                  "restartPolicy": "Always",
+                  "terminationGracePeriodSeconds": 30,
+                  "dnsPolicy": "ClusterFirst",
+                  "automountServiceAccountToken": false,
+                  "securityContext": {
+                    "runAsUser": 10001,
+                    "runAsGroup": 10001,
+                    "runAsNonRoot": true,
+                    "seccompProfile": {
+                      "type": "RuntimeDefault"
+                    }
+                  },
+                  "schedulerName": "default-scheduler"
+                }
+              },
+              "strategy": {
+                "type": "Recreate"
+              },
+              "revisionHistoryLimit": 5,
+              "progressDeadlineSeconds": 120
+            },
+            "status": {
+              "observedGeneration": 2,
+              "replicas": 1,
+              "updatedReplicas": 1,
+              "unavailableReplicas": 1,
+              "terminatingReplicas": 0,
+              "conditions": [
+                {
+                  "type": "Available",
+                  "status": "False",
+                  "lastUpdateTime": "2026-10-17T18:11:31Z",
+                  "lastTransitionTime": "2026-10-17T18:11:31Z",
+                  "reason": "MinimumReplicasUnavailable",
+                  "message": "Deployment does not have minimum availability."
+                },
+                {
+                  "type": "Progressing",
+                  "status": "True",
+                  "lastUpdateTime": "2026-10-17T18:11:31Z",
+                  "lastTransitionTime": "2026-10-17T18:07:25Z",
+                  "reason": "ReplicaSetUpdated",
+                  "message": "ReplicaSet \"checkout-release-6c5f8dbb44\" is progressing."
+                }
+              ]
+            }
+          },
+          "replicasets": [
+            {
+              "metadata": {
+                "name": "checkout-release-6c5f8dbb44",
+                "namespace": "demo",
+                "uid": "af40617a-10f9-4516-b68e-ac07640fcd5e",
+                "resourceVersion": "20363",
+                "generation": 1,
+                "creationTimestamp": "2026-10-17T18:11:31Z",
+                "labels": {
+                  "app": "incident-checkout-release",
+                  "pod-template-hash": "6c5f8dbb44"
+                },
+                "annotations": {
+                  "deployment.kubernetes.io/desired-replicas": "1",
+                  "deployment.kubernetes.io/max-replicas": "1",
+                  "deployment.kubernetes.io/revision": "2"
+                },
+                "ownerReferences": [
+                  {
+                    "apiVersion": "apps/v1",
+                    "kind": "Deployment",
+                    "name": "checkout-release",
+                    "uid": "736d20e4-746d-4532-bf73-8294e384a792",
+                    "controller": true,
+                    "blockOwnerDeletion": true
+                  }
+                ],
+                "managedFields": [
+                  {
+                    "manager": "kube-controller-manager",
+                    "operation": "Update",
+                    "apiVersion": "apps/v1",
+                    "time": "2026-10-17T18:11:31Z",
+                    "fieldsType": "FieldsV1",
+                    "fieldsV1": {
+                      "f:metadata": {
+                        "f:annotations": {
+                          ".": {},
+                          "f:deployment.kubernetes.io/desired-replicas": {},
+                          "f:deployment.kubernetes.io/max-replicas": {},
+                          "f:deployment.kubernetes.io/revision": {}
+                        },
+                        "f:labels": {
+                          ".": {},
+                          "f:app": {},
+                          "f:pod-template-hash": {}
+                        },
+                        "f:ownerReferences": {
+                          ".": {},
+                          "k:{\"uid\":\"736d20e4-746d-4532-bf73-8294e384a792\"}": {}
+                        }
+                      },
+                      "f:spec": {
+                        "f:replicas": {},
+                        "f:selector": {},
+                        "f:template": {
+                          "f:metadata": {
+                            "f:labels": {
+                              ".": {},
+                              "f:app": {},
+                              "f:pod-template-hash": {}
+                            }
+                          },
+                          "f:spec": {
+                            "f:automountServiceAccountToken": {},
+                            "f:containers": {
+                              "k:{\"name\":\"checkout\"}": {
+                                ".": {},
+                                "f:env": {
+                                  ".": {},
+                                  "k:{\"name\":\"LAB_INITIAL_MODE\"}": {
+                                    ".": {},
+                                    "f:name": {},
+                                    "f:value": {}
+                                  },
+                                  "k:{\"name\":\"LAB_RELEASE\"}": {
+                                    ".": {},
+                                    "f:name": {},
+                                    "f:value": {}
+                                  },
+                                  "k:{\"name\":\"POD_UID\"}": {
+                                    ".": {},
+                                    "f:name": {},
+                                    "f:valueFrom": {
+                                      ".": {},
+                                      "f:fieldRef": {}
+                                    }
+                                  }
+                                },
+                                "f:image": {},
+                                "f:imagePullPolicy": {},
+                                "f:name": {},
+                                "f:ports": {
+                                  ".": {},
+                                  "k:{\"containerPort\":8080,\"protocol\":\"TCP\"}": {
+                                    ".": {},
+                                    "f:containerPort": {},
+                                    "f:protocol": {}
+                                  }
+                                },
+                                "f:readinessProbe": {
+                                  ".": {},
+                                  "f:failureThreshold": {},
+                                  "f:httpGet": {
+                                    ".": {},
+                                    "f:path": {},
+                                    "f:port": {},
+                                    "f:scheme": {}
+                                  },
+                                  "f:initialDelaySeconds": {},
+                                  "f:periodSeconds": {},
+                                  "f:successThreshold": {},
+                                  "f:timeoutSeconds": {}
+                                },
+                                "f:resources": {
+                                  ".": {},
+                                  "f:limits": {
+                                    ".": {},
+                                    "f:cpu": {},
+                                    "f:memory": {}
+                                  },
+                                  "f:requests": {
+                                    ".": {},
+                                    "f:cpu": {},
+                                    "f:memory": {}
+                                  }
+                                },
+                                "f:securityContext": {
+                                  ".": {},
+                                  "f:allowPrivilegeEscalation": {},
+                                  "f:capabilities": {
+                                    ".": {},
+                                    "f:drop": {}
+                                  },
+                                  "f:readOnlyRootFilesystem": {}
+                                },
+                                "f:terminationMessagePath": {},
+                                "f:terminationMessagePolicy": {}
+                              }
+                            },
+                            "f:dnsPolicy": {},
+                            "f:restartPolicy": {},
+                            "f:schedulerName": {},
+                            "f:securityContext": {
+                              ".": {},
+                              "f:runAsGroup": {},
+                              "f:runAsNonRoot": {},
+                              "f:runAsUser": {},
+                              "f:seccompProfile": {
+                                ".": {},
+                                "f:type": {}
+                              }
+                            },
+                            "f:terminationGracePeriodSeconds": {}
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "manager": "kube-controller-manager",
+                    "operation": "Update",
+                    "apiVersion": "apps/v1",
+                    "time": "2026-10-17T18:11:31Z",
+                    "fieldsType": "FieldsV1",
+                    "fieldsV1": {
+                      "f:status": {
+                        "f:fullyLabeledReplicas": {},
+                        "f:observedGeneration": {},
+                        "f:replicas": {},
+                        "f:terminatingReplicas": {}
+                      }
+                    },
+                    "subresource": "status"
+                  }
+                ]
+              },
+              "spec": {
+                "replicas": 1,
+                "selector": {
+                  "matchLabels": {
+                    "app": "incident-checkout-release",
+                    "pod-template-hash": "6c5f8dbb44"
+                  }
+                },
+                "template": {
+                  "metadata": {
+                    "labels": {
+                      "app": "incident-checkout-release",
+                      "pod-template-hash": "6c5f8dbb44"
+                    }
+                  },
+                  "spec": {
+                    "containers": [
+                      {
+                        "name": "checkout",
+                        "image": "incident-checkout:k8s-v11",
+                        "ports": [
+                          {
+                            "containerPort": 8080,
+                            "protocol": "TCP"
+                          }
+                        ],
+                        "env": [
+                          {
+                            "name": "LAB_INITIAL_MODE",
+                            "value": "fault"
+                          },
+                          {
+                            "name": "LAB_RELEASE",
+                            "value": "regression-v2"
+                          },
+                          {
+                            "name": "POD_UID",
+                            "valueFrom": {
+                              "fieldRef": {
+                                "apiVersion": "v1",
+                                "fieldPath": "metadata.uid"
+                              }
+                            }
+                          }
+                        ],
+                        "resources": {
+                          "limits": {
+                            "cpu": "250m",
+                            "memory": "96Mi"
+                          },
+                          "requests": {
+                            "cpu": "25m",
+                            "memory": "24Mi"
+                          }
+                        },
+                        "readinessProbe": {
+                          "httpGet": {
+                            "path": "/ready",
+                            "port": 8080,
+                            "scheme": "HTTP"
+                          },
+                          "initialDelaySeconds": 2,
+                          "timeoutSeconds": 1,
+                          "periodSeconds": 2,
+                          "successThreshold": 1,
+                          "failureThreshold": 1
+                        },
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "imagePullPolicy": "Never",
+                        "securityContext": {
+                          "capabilities": {
+                            "drop": [
+                              "ALL"
+                            ]
+                          },
+                          "readOnlyRootFilesystem": true,
+                          "allowPrivilegeEscalation": false
+                        }
+                      }
+                    ],
+                    "restartPolicy": "Always",
+                    "terminationGracePeriodSeconds": 30,
+                    "dnsPolicy": "ClusterFirst",
+                    "automountServiceAccountToken": false,
+                    "securityContext": {
+                      "runAsUser": 10001,
+                      "runAsGroup": 10001,
+                      "runAsNonRoot": true,
+                      "seccompProfile": {
+                        "type": "RuntimeDefault"
+                      }
+                    },
+                    "schedulerName": "default-scheduler"
+                  }
+                }
+              },
+              "status": {
+                "replicas": 1,
+                "fullyLabeledReplicas": 1,
+                "terminatingReplicas": 0,
+                "observedGeneration": 1
+              }
+            },
+            {
+              "metadata": {
+                "name": "checkout-release-fc857fb48",
+                "namespace": "demo",
+                "uid": "4b93ad45-5e28-4153-83dc-7673c2dd3ca3",
+                "resourceVersion": "20353",
+                "generation": 2,
+                "creationTimestamp": "2026-10-17T18:07:25Z",
+                "labels": {
+                  "app": "incident-checkout-release",
+                  "pod-template-hash": "fc857fb48"
+                },
+                "annotations": {
+                  "deployment.kubernetes.io/desired-replicas": "1",
+                  "deployment.kubernetes.io/max-replicas": "1",
+                  "deployment.kubernetes.io/revision": "1"
+                },
+                "ownerReferences": [
+                  {
+                    "apiVersion": "apps/v1",
+                    "kind": "Deployment",
+                    "name": "checkout-release",
+                    "uid": "736d20e4-746d-4532-bf73-8294e384a792",
+                    "controller": true,
+                    "blockOwnerDeletion": true
+                  }
+                ],
+                "managedFields": [
+                  {
+                    "manager": "kube-controller-manager",
+                    "operation": "Update",
+                    "apiVersion": "apps/v1",
+                    "time": "2026-10-17T18:11:31Z",
+                    "fieldsType": "FieldsV1",
+                    "fieldsV1": {
+                      "f:metadata": {
+                        "f:annotations": {
+                          ".": {},
+                          "f:deployment.kubernetes.io/desired-replicas": {},
+                          "f:deployment.kubernetes.io/max-replicas": {},
+                          "f:deployment.kubernetes.io/revision": {}
+                        },
+                        "f:labels": {
+                          ".": {},
+                          "f:app": {},
+                          "f:pod-template-hash": {}
+                        },
+                        "f:ownerReferences": {
+                          ".": {},
+                          "k:{\"uid\":\"736d20e4-746d-4532-bf73-8294e384a792\"}": {}
+                        }
+                      },
+                      "f:spec": {
+                        "f:replicas": {},
+                        "f:selector": {},
+                        "f:template": {
+                          "f:metadata": {
+                            "f:labels": {
+                              ".": {},
+                              "f:app": {},
+                              "f:pod-template-hash": {}
+                            }
+                          },
+                          "f:spec": {
+                            "f:automountServiceAccountToken": {},
+                            "f:containers": {
+                              "k:{\"name\":\"checkout\"}": {
+                                ".": {},
+                                "f:env": {
+                                  ".": {},
+                                  "k:{\"name\":\"LAB_INITIAL_MODE\"}": {
+                                    ".": {},
+                                    "f:name": {},
+                                    "f:value": {}
+                                  },
+                                  "k:{\"name\":\"LAB_RELEASE\"}": {
+                                    ".": {},
+                                    "f:name": {},
+                                    "f:value": {}
+                                  },
+                                  "k:{\"name\":\"POD_UID\"}": {
+                                    ".": {},
+                                    "f:name": {},
+                                    "f:valueFrom": {
+                                      ".": {},
+                                      "f:fieldRef": {}
+                                    }
+                                  }
+                                },
+                                "f:image": {},
+                                "f:imagePullPolicy": {},
+                                "f:name": {},
+                                "f:ports": {
+                                  ".": {},
+                                  "k:{\"containerPort\":8080,\"protocol\":\"TCP\"}": {
+                                    ".": {},
+                                    "f:containerPort": {},
+                                    "f:protocol": {}
+                                  }
+                                },
+                                "f:readinessProbe": {
+                                  ".": {},
+                                  "f:failureThreshold": {},
+                                  "f:httpGet": {
+                                    ".": {},
+                                    "f:path": {},
+                                    "f:port": {},
+                                    "f:scheme": {}
+                                  },
+                                  "f:initialDelaySeconds": {},
+                                  "f:periodSeconds": {},
+                                  "f:successThreshold": {},
+                                  "f:timeoutSeconds": {}
+                                },
+                                "f:resources": {
+                                  ".": {},
+                                  "f:limits": {
+                                    ".": {},
+                                    "f:cpu": {},
+                                    "f:memory": {}
+                                  },
+                                  "f:requests": {
+                                    ".": {},
+                                    "f:cpu": {},
+                                    "f:memory": {}
+                                  }
+                                },
+                                "f:securityContext": {
+                                  ".": {},
+                                  "f:allowPrivilegeEscalation": {},
+                                  "f:capabilities": {
+                                    ".": {},
+                                    "f:drop": {}
+                                  },
+                                  "f:readOnlyRootFilesystem": {}
+                                },
+                                "f:terminationMessagePath": {},
+                                "f:terminationMessagePolicy": {}
+                              }
+                            },
+                            "f:dnsPolicy": {},
+                            "f:restartPolicy": {},
+                            "f:schedulerName": {},
+                            "f:securityContext": {
+                              ".": {},
+                              "f:runAsGroup": {},
+                              "f:runAsNonRoot": {},
+                              "f:runAsUser": {},
+                              "f:seccompProfile": {
+                                ".": {},
+                                "f:type": {}
+                              }
+                            },
+                            "f:terminationGracePeriodSeconds": {}
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "manager": "kube-controller-manager",
+                    "operation": "Update",
+                    "apiVersion": "apps/v1",
+                    "time": "2026-10-17T18:11:31Z",
+                    "fieldsType": "FieldsV1",
+                    "fieldsV1": {
+                      "f:status": {
+                        "f:observedGeneration": {},
+                        "f:replicas": {},
+                        "f:terminatingReplicas": {}
+                      }
+                    },
+                    "subresource": "status"
+                  }
+                ]
+              },
+              "spec": {
+                "replicas": 0,
+                "selector": {
+                  "matchLabels": {
+                    "app": "incident-checkout-release",
+                    "pod-template-hash": "fc857fb48"
+                  }
+                },
+                "template": {
+                  "metadata": {
+                    "labels": {
+                      "app": "incident-checkout-release",
+                      "pod-template-hash": "fc857fb48"
+                    }
+                  },
+                  "spec": {
+                    "containers": [
+                      {
+                        "name": "checkout",
+                        "image": "incident-checkout:k8s-v11",
+                        "ports": [
+                          {
+                            "containerPort": 8080,
+                            "protocol": "TCP"
+                          }
+                        ],
+                        "env": [
+                          {
+                            "name": "LAB_INITIAL_MODE",
+                            "value": "healthy"
+                          },
+                          {
+                            "name": "LAB_RELEASE",
+                            "value": "stable-v1"
+                          },
+                          {
+                            "name": "POD_UID",
+                            "valueFrom": {
+                              "fieldRef": {
+                                "apiVersion": "v1",
+                                "fieldPath": "metadata.uid"
+                              }
+                            }
+                          }
+                        ],
+                        "resources": {
+                          "limits": {
+                            "cpu": "250m",
+                            "memory": "96Mi"
+                          },
+                          "requests": {
+                            "cpu": "25m",
+                            "memory": "24Mi"
+                          }
+                        },
+                        "readinessProbe": {
+                          "httpGet": {
+                            "path": "/ready",
+                            "port": 8080,
+                            "scheme": "HTTP"
+                          },
+                          "initialDelaySeconds": 2,
+                          "timeoutSeconds": 1,
+                          "periodSeconds": 2,
+                          "successThreshold": 1,
+                          "failureThreshold": 1
+                        },
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "imagePullPolicy": "Never",
+                        "securityContext": {
+                          "capabilities": {
+                            "drop": [
+                              "ALL"
+                            ]
+                          },
+                          "readOnlyRootFilesystem": true,
+                          "allowPrivilegeEscalation": false
+                        }
+                      }
+                    ],
+                    "restartPolicy": "Always",
+                    "terminationGracePeriodSeconds": 30,
+                    "dnsPolicy": "ClusterFirst",
+                    "automountServiceAccountToken": false,
+                    "securityContext": {
+                      "runAsUser": 10001,
+                      "runAsGroup": 10001,
+                      "runAsNonRoot": true,
+                      "seccompProfile": {
+                        "type": "RuntimeDefault"
+                      }
+                    },
+                    "schedulerName": "default-scheduler"
+                  }
+                }
+              },
+              "status": {
+                "replicas": 0,
+                "terminatingReplicas": 0,
+                "observedGeneration": 2
+              }
+            }
+          ],
+          "pods": [
+            {
+              "metadata": {
+                "name": "checkout-release-6c5f8dbb44-b6r6m",
+                "generateName": "checkout-release-6c5f8dbb44-",
+                "namespace": "demo",
+                "uid": "d087720c-532f-4ca9-8836-ca7008c2f301",
+                "resourceVersion": "20370",
+                "generation": 1,
+                "creationTimestamp": "2026-10-17T18:11:31Z",
+                "labels": {
+                  "app": "incident-checkout-release",
+                  "pod-template-hash": "6c5f8dbb44"
+                },
+                "ownerReferences": [
+                  {
+                    "apiVersion": "apps/v1",
+                    "kind": "ReplicaSet",
+                    "name": "checkout-release-6c5f8dbb44",
+                    "uid": "af40617a-10f9-4516-b68e-ac07640fcd5e",
+                    "controller": true,
+                    "blockOwnerDeletion": true
+                  }
+                ],
+                "managedFields": [
+                  {
+                    "manager": "kube-controller-manager",
+                    "operation": "Update",
+                    "apiVersion": "v1",
+                    "time": "2026-10-17T18:11:31Z",
+                    "fieldsType": "FieldsV1",
+                    "fieldsV1": {
+                      "f:metadata": {
+                        "f:generateName": {},
+                        "f:labels": {
+                          ".": {},
+                          "f:app": {},
+                          "f:pod-template-hash": {}
+                        },
+                        "f:ownerReferences": {
+                          ".": {},
+                          "k:{\"uid\":\"af40617a-10f9-4516-b68e-ac07640fcd5e\"}": {}
+                        }
+                      },
+                      "f:spec": {
+                        "f:automountServiceAccountToken": {},
+                        "f:containers": {
+                          "k:{\"name\":\"checkout\"}": {
+                            ".": {},
+                            "f:env": {
+                              ".": {},
+                              "k:{\"name\":\"LAB_INITIAL_MODE\"}": {
+                                ".": {},
+                                "f:name": {},
+                                "f:value": {}
+                              },
+                              "k:{\"name\":\"LAB_RELEASE\"}": {
+                                ".": {},
+                                "f:name": {},
+                                "f:value": {}
+                              },
+                              "k:{\"name\":\"POD_UID\"}": {
+                                ".": {},
+                                "f:name": {},
+                                "f:valueFrom": {
+                                  ".": {},
+                                  "f:fieldRef": {}
+                                }
+                              }
+                            },
+                            "f:image": {},
+                            "f:imagePullPolicy": {},
+                            "f:name": {},
+                            "f:ports": {
+                              ".": {},
+                              "k:{\"containerPort\":8080,\"protocol\":\"TCP\"}": {
+                                ".": {},
+                                "f:containerPort": {},
+                                "f:protocol": {}
+                              }
+                            },
+                            "f:readinessProbe": {
+                              ".": {},
+                              "f:failureThreshold": {},
+                              "f:httpGet": {
+                                ".": {},
+                                "f:path": {},
+                                "f:port": {},
+                                "f:scheme": {}
+                              },
+                              "f:initialDelaySeconds": {},
+                              "f:periodSeconds": {},
+                              "f:successThreshold": {},
+                              "f:timeoutSeconds": {}
+                            },
+                            "f:resources": {
+                              ".": {},
+                              "f:limits": {
+                                ".": {},
+                                "f:cpu": {},
+                                "f:memory": {}
+                              },
+                              "f:requests": {
+                                ".": {},
+                                "f:cpu": {},
+                                "f:memory": {}
+                              }
+                            },
+                            "f:securityContext": {
+                              ".": {},
+                              "f:allowPrivilegeEscalation": {},
+                              "f:capabilities": {
+                                ".": {},
+                                "f:drop": {}
+                              },
+                              "f:readOnlyRootFilesystem": {}
+                            },
+                            "f:terminationMessagePath": {},
+                            "f:terminationMessagePolicy": {}
+                          }
+                        },
+                        "f:dnsPolicy": {},
+                        "f:enableServiceLinks": {},
+                        "f:restartPolicy": {},
+                        "f:schedulerName": {},
+                        "f:securityContext": {
+                          ".": {},
+                          "f:runAsGroup": {},
+                          "f:runAsNonRoot": {},
+                          "f:runAsUser": {},
+                          "f:seccompProfile": {
+                            ".": {},
+                            "f:type": {}
+                          }
+                        },
+                        "f:terminationGracePeriodSeconds": {}
+                      }
+                    }
+                  },
+                  {
+                    "manager": "kubelet",
+                    "operation": "Update",
+                    "apiVersion": "v1",
+                    "time": "2026-10-17T18:11:31Z",
+                    "fieldsType": "FieldsV1",
+                    "fieldsV1": {
+                      "f:status": {
+                        "f:allocatedResources": {
+                          ".": {},
+                          "f:cpu": {},
+                          "f:memory": {}
+                        },
+                        "f:conditions": {
+                          "k:{\"type\":\"ContainersReady\"}": {
+                            ".": {},
+                            "f:lastProbeTime": {},
+                            "f:lastTransitionTime": {},
+                            "f:message": {},
+                            "f:observedGeneration": {},
+                            "f:reason": {},
+                            "f:status": {},
+                            "f:type": {}
+                          },
+                          "k:{\"type\":\"Initialized\"}": {
+                            ".": {},
+                            "f:lastProbeTime": {},
+                            "f:lastTransitionTime": {},
+                            "f:observedGeneration": {},
+                            "f:status": {},
+                            "f:type": {}
+                          },
+                          "k:{\"type\":\"PodReadyToStartContainers\"}": {
+                            ".": {},
+                            "f:lastProbeTime": {},
+                            "f:lastTransitionTime": {},
+                            "f:observedGeneration": {},
+                            "f:status": {},
+                            "f:type": {}
+                          },
+                          "k:{\"type\":\"PodScheduled\"}": {
+                            "f:observedGeneration": {}
+                          },
+                          "k:{\"type\":\"Ready\"}": {
+                            ".": {},
+                            "f:lastProbeTime": {},
+                            "f:lastTransitionTime": {},
+                            "f:message": {},
+                            "f:observedGeneration": {},
+                            "f:reason": {},
+                            "f:status": {},
+                            "f:type": {}
+                          }
+                        },
+                        "f:containerStatuses": {},
+                        "f:hostIP": {},
+                        "f:hostIPs": {},
+                        "f:observedGeneration": {},
+                        "f:phase": {},
+                        "f:podIP": {},
+                        "f:podIPs": {
+                          ".": {},
+                          "k:{\"ip\":\"10.244.0.7\"}": {
+                            ".": {},
+                            "f:ip": {}
+                          }
+                        },
+                        "f:resources": {
+                          ".": {},
+                          "f:limits": {
+                            ".": {},
+                            "f:cpu": {},
+                            "f:memory": {}
+                          },
+                          "f:requests": {
+                            ".": {},
+                            "f:cpu": {},
+                            "f:memory": {}
+                          }
+                        },
+                        "f:startTime": {}
+                      }
+                    },
+                    "subresource": "status"
+                  }
+                ]
+              },
+              "spec": {
+                "containers": [
+                  {
+                    "name": "checkout",
+                    "image": "incident-checkout:k8s-v11",
+                    "ports": [
+                      {
+                        "containerPort": 8080,
+                        "protocol": "TCP"
+                      }
+                    ],
+                    "env": [
+                      {
+                        "name": "LAB_INITIAL_MODE",
+                        "value": "fault"
+                      },
+                      {
+                        "name": "LAB_RELEASE",
+                        "value": "regression-v2"
+                      },
+                      {
+                        "name": "POD_UID",
+                        "valueFrom": {
+                          "fieldRef": {
+                            "apiVersion": "v1",
+                            "fieldPath": "metadata.uid"
+                          }
+                        }
+                      }
+                    ],
+                    "resources": {
+                      "limits": {
+                        "cpu": "250m",
+                        "memory": "96Mi"
+                      },
+                      "requests": {
+                        "cpu": "25m",
+                        "memory": "24Mi"
+                      }
+                    },
+                    "readinessProbe": {
+                      "httpGet": {
+                        "path": "/ready",
+                        "port": 8080,
+                        "scheme": "HTTP"
+                      },
+                      "initialDelaySeconds": 2,
+                      "timeoutSeconds": 1,
+                      "periodSeconds": 2,
+                      "successThreshold": 1,
+                      "failureThreshold": 1
+                    },
+                    "terminationMessagePath": "/dev/termination-log",
+                    "terminationMessagePolicy": "File",
+                    "imagePullPolicy": "Never",
+                    "securityContext": {
+                      "capabilities": {
+                        "drop": [
+                          "ALL"
+                        ]
+                      },
+                      "readOnlyRootFilesystem": true,
+                      "allowPrivilegeEscalation": false
+                    }
+                  }
+                ],
+                "restartPolicy": "Always",
+                "terminationGracePeriodSeconds": 30,
+                "dnsPolicy": "ClusterFirst",
+                "serviceAccountName": "default",
+                "serviceAccount": "default",
+                "automountServiceAccountToken": false,
+                "nodeName": "incident-lab-control-plane",
+                "securityContext": {
+                  "runAsUser": 10001,
+                  "runAsGroup": 10001,
+                  "runAsNonRoot": true,
+                  "seccompProfile": {
+                    "type": "RuntimeDefault"
+                  }
+                },
+                "schedulerName": "default-scheduler",
+                "tolerations": [
+                  {
+                    "key": "node.kubernetes.io/not-ready",
+                    "operator": "Exists",
+                    "effect": "NoExecute",
+                    "tolerationSeconds": 300
+                  },
+                  {
+                    "key": "node.kubernetes.io/unreachable",
+                    "operator": "Exists",
+                    "effect": "NoExecute",
+                    "tolerationSeconds": 300
+                  }
+                ],
+                "priority": 0,
+                "enableServiceLinks": true,
+                "preemptionPolicy": "PreemptLowerPriority"
+              },
+              "status": {
+                "observedGeneration": 1,
+                "phase": "Running",
+                "conditions": [
+                  {
+                    "type": "PodReadyToStartContainers",
+                    "observedGeneration": 1,
+                    "status": "True",
+                    "lastProbeTime": null,
+                    "lastTransitionTime": "2026-10-17T18:11:31Z"
+                  },
+                  {
+                    "type": "Initialized",
+                    "observedGeneration": 1,
+                    "status": "True",
+                    "lastProbeTime": null,
+                    "lastTransitionTime": "2026-10-17T18:11:31Z"
+                  },
+                  {
+                    "type": "Ready",
+                    "observedGeneration": 1,
+                    "status": "False",
+                    "lastProbeTime": null,
+                    "lastTransitionTime": "2026-10-17T18:11:31Z",
+                    "reason": "ContainersNotReady",
+                    "message": "containers with unready status: [checkout]"
+                  },
+                  {
+                    "type": "ContainersReady",
+                    "observedGeneration": 1,
+                    "status": "False",
+                    "lastProbeTime": null,
+                    "lastTransitionTime": "2026-10-17T18:11:31Z",
+                    "reason": "ContainersNotReady",
+                    "message": "containers with unready status: [checkout]"
+                  },
+                  {
+                    "type": "PodScheduled",
+                    "observedGeneration": 1,
+                    "status": "True",
+                    "lastProbeTime": null,
+                    "lastTransitionTime": "2026-10-17T18:11:31Z"
+                  }
+                ],
+                "hostIP": "172.19.0.2",
+                "hostIPs": [
+                  {
+                    "ip": "172.19.0.2"
+                  }
+                ],
+                "podIP": "10.244.0.7",
+                "podIPs": [
+                  {
+                    "ip": "10.244.0.7"
+                  }
+                ],
+                "startTime": "2026-10-17T18:11:31Z",
+                "containerStatuses": [
+                  {
+                    "name": "checkout",
+                    "state": {
+                      "running": {
+                        "startedAt": "2026-10-17T18:11:31Z"
+                      }
+                    },
+                    "lastState": {},
+                    "ready": false,
+                    "restartCount": 0,
+                    "image": "docker.io/library/incident-checkout:k8s-v11",
+                    "imageID": "docker.io/library/import-2026-10-17@sha256:9ffbfc4070f7c7f099a15088f516bcf03ec66f83a2e3bc44f0f6dcb1e950533b",
+                    "containerID": "containerd://4decfa3595a7ca575a44ded5208d1da4ef23b2533e45083646ef904446356b15",
+                    "started": true,
+                    "allocatedResources": {
+                      "cpu": "25m",
+                      "memory": "24Mi"
+                    },
+                    "resources": {
+                      "limits": {
+                        "cpu": "250m",
+                        "memory": "96Mi"
+                      },
+                      "requests": {
+                        "cpu": "25m",
+                        "memory": "24Mi"
+                      }
+                    },
+                    "user": {
+                      "linux": {
+                        "uid": 10001,
+                        "gid": 10001,
+                        "supplementalGroups": [
+                          10001
+                        ]
+                      }
+                    }
+                  }
+                ],
+                "qosClass": "Burstable",
+                "allocatedResources": {
+                  "cpu": "25m",
+                  "memory": "24Mi"
+                },
+                "resources": {
+                  "limits": {
+                    "cpu": "250m",
+                    "memory": "96Mi"
+                  },
+                  "requests": {
+                    "cpu": "25m",
+                    "memory": "24Mi"
+                  }
+                }
+              }
+            }
+          ],
+          "health": {
+            "status": "ok",
+            "data_mode": "live_lab",
+            "log_exporter": {
+              "enabled": false
+            },
+            "trace_exporter": {
+              "enabled": false
+            },
+            "instance_id": "d718b50c768b4b6eaf659a7d3baf49b1",
+            "mode": "fault",
+            "pod_uid": "d087720c-532f-4ca9-8836-ca7008c2f301",
+            "release": "regression-v2"
+          },
+          "responses": [
+            {
+              "status": 503,
+              "body": {
+                "status": "injected_failure",
+                "request_id": "2f6e4bfdddfe4296a3fb1bc583afc012",
+                "data_mode": "live_lab"
+              }
+            },
+            {
+              "status": 503,
+              "body": {
+                "status": "injected_failure",
+                "request_id": "22e1c99900fe42a1ae76fa780e2e6d13",
+                "data_mode": "live_lab"
+              }
+            },
+            {
+              "status": 503,
+              "body": {
+                "status": "injected_failure",
+                "request_id": "5b4fce7b19c64afa873d427f1a7446be",
+                "data_mode": "live_lab"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "domain_audit": [
+    {
+      "type": "request_denied",
+      "run_id": "b1aab2c6-39d9-4e80-acab-7bdf2d40be69",
+      "recorded_at": "2026-10-17T18:11:34.173Z",
+      "code": "ROUTE_DENIED"
+    },
+    {
+      "type": "request_denied",
+      "run_id": "b1aab2c6-39d9-4e80-acab-7bdf2d40be69",
+      "recorded_at": "2026-10-17T18:11:34.177Z",
+      "code": "ROUTE_DENIED"
+    },
+    {
+      "type": "release_observed",
+      "run_id": "b1aab2c6-39d9-4e80-acab-7bdf2d40be69",
+      "recorded_at": "2026-10-17T18:11:34.551Z",
+      "target": {
+        "cluster": "incident-lab",
+        "namespace": "demo",
+        "deployment": "checkout-release",
+        "deployment_uid": "736d20e4-746d-4532-bf73-8294e384a792",
+        "generation": 2,
+        "current_revision": 2,
+        "current_template_digest": "9d335960c6373420e490ffbabfc587f4b3396502d9e7381599b991d4e321a1e8",
+        "stable_replicaset": "checkout-release-fc857fb48",
+        "stable_replicaset_uid": "4b93ad45-5e28-4153-83dc-7673c2dd3ca3",
+        "stable_revision": 1,
+        "stable_template_digest": "fd48e3568d8de477975e8658cc06f2430f9c14e4b61fa16680308727b01a1b34"
+      },
+      "evidence_digest": "951684049bc52bb8e40385428a57036e93866f8aeca0ec0eebc419e7881a6500"
+    },
+    {
+      "type": "proposal_created",
+      "run_id": "b1aab2c6-39d9-4e80-acab-7bdf2d40be69",
+      "recorded_at": "2026-10-17T18:11:34.559Z",
+      "proposal_id": "c177a358-0f93-4ae3-aa6e-ce62d5c56ddf"
+    }
+  ]
+}

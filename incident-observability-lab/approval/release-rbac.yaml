@@ -1,0 +1,76 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: incident-release-reader
+  namespace: demo
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: incident-release-executor
+  namespace: demo
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: incident-release-read
+  namespace: demo
+rules:
+  - apiGroups: [apps]
+    resources: [deployments]
+    resourceNames: [checkout-release]
+    verbs: [get]
+  - apiGroups: [apps]
+    resources: [replicasets]
+    verbs: [get, list]
+  - apiGroups: ['']
+    resources: [pods]
+    verbs: [get, list]
+  - apiGroups: ['']
+    resources: [services/proxy]
+    resourceNames: [checkout-release]
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: incident-release-read
+  namespace: demo
+subjects:
+  - kind: ServiceAccount
+    name: incident-release-reader
+    namespace: demo
+  - kind: ServiceAccount
+    name: incident-release-executor
+    namespace: demo
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: incident-release-read
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: incident-release-write
+  namespace: demo
+rules:
+  - apiGroups: [apps]
+    resources: [deployments]
+    resourceNames: [checkout-release]
+    verbs: [patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: incident-release-write
+  namespace: demo
+subjects:
+  - kind: ServiceAccount
+    name: incident-release-executor
+    namespace: demo
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: incident-release-write

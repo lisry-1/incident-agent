@@ -17,7 +17,7 @@
 
 ## 真实数据源接入进展
 
-新增 [Prometheus 本地实验环境与查询适配器](incident-observability-lab/README.md)，用于生成实际 HTTP 流量并查询抓取到的指标。本地容器实验已验证：336 次请求、正常 5xx=0、故障 5xx=1、恢复健康成功。已提供 [Miniclaw 异步工具接入](incident-observability-lab/RUNTIME.md)，纯指标真实模型验收已通过（18 条 PROM-*、probe→deep、时间线对齐）；[Loki 日志接入](incident-observability-lab/LOKI.md) 也已完成本地实验与模型审计核对（164 条日志、182 条合并证据）。现已实现 [Jaeger 链路接入](incident-observability-lab/JAEGER.md)，真实容器和三源模型审计已核对（18 条指标、160 条日志、16 个 span，时间线 194 条）。新增 [Kubernetes 同服务四源实验](incident-observability-lab/KUBERNETES.md)，只读 API、权限与 Runtime 程序验证通过，用户真实集群与四源模型审计已核对（199 条时间线证据）。新增 [独立诊断与人工审批重启](incident-observability-lab/APPROVAL.md)，代码与程序测试已通过，实际容器隔离、审批执行及独立模型验收待执行。
+新增 [Prometheus 本地实验环境与查询适配器](incident-observability-lab/README.md)，用于生成实际 HTTP 流量并查询抓取到的指标。本地容器实验已验证：336 次请求、正常 5xx=0、故障 5xx=1、恢复健康成功。已提供 [Miniclaw 异步工具接入](incident-observability-lab/RUNTIME.md)，纯指标真实模型验收已通过（18 条 PROM-*、probe→deep、时间线对齐）；[Loki 日志接入](incident-observability-lab/LOKI.md) 也已完成本地实验与模型审计核对（164 条日志、182 条合并证据）。现已实现 [Jaeger 链路接入](incident-observability-lab/JAEGER.md)，真实容器和三源模型审计已核对（18 条指标、160 条日志、16 个 span，时间线 194 条）。新增 [Kubernetes 同服务四源实验](incident-observability-lab/KUBERNETES.md)，只读 API、权限与 Runtime 程序验证通过，用户真实集群与四源模型审计已核对（199 条时间线证据）。新增 [独立诊断与人工审批重启](incident-observability-lab/APPROVAL.md)，独立容器隔离、真实模型提案、人工审批与一次重启已在本地实际验证；新增 [Deployment 配置回滚](incident-observability-lab/ROLLBACK.md)，代码与程序测试已通过，实际集群回滚待验收。
 
 ## 已完成验证
 
@@ -37,7 +37,7 @@
 
 本项目基于 HClaw 仓库中的 Miniclaw 源码（基线 `e1ebc699ab96544a032eb09abd4fb0ee5e3a1251`），保留上游许可证。工作台、Pi Runtime、会话和工作区机制来自上游；新增故障样例、查询 Harness、工具注册及验证由 Codex 辅助开发，并在本地运行验证。
 
-范围控制仅作用于新增的故障查询入口；Miniclaw 的其他工具仍然开放。fixture 演示与 live_lab 模式独立；后者已连接本地 Prometheus/Loki；Jaeger 也已完成本地验收；Kubernetes 也已完成真实集群与模型审计验收。新增独立诊断容器与人工审批重启代码待实际集成验收；原 Host 工具权限保持开放。
+范围控制仅作用于新增的故障查询入口；Miniclaw 的其他工具仍然开放。fixture 演示与 live_lab 模式独立；后者已连接本地 Prometheus/Loki；Jaeger 也已完成本地验收；Kubernetes 也已完成真实集群与模型审计验收。独立诊断容器、人工审批重启与隔离模型流程已通过本地集成验收；Deployment 配置回滚仍待实际验收，原 Host 工具权限保持开放。
 
 ---
 
