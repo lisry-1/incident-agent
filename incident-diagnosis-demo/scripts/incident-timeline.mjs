@@ -3,7 +3,12 @@ import { parseTime } from './incident-cli.mjs';
 const SOURCES = ['metrics', 'logs', 'deployments', 'pod_events', 'traces'];
 
 /** Align ONLY observed query results. Time proximity is never a causal label. */
-export function alignTimeline({ scope, observations, sliceMs = 60_000 }) {
+export function alignTimeline({
+  scope,
+  observations,
+  sliceMs = 60_000,
+  dataMode = 'synthetic_fixture',
+}) {
   const start = parseTime(scope.start);
   const end = parseTime(scope.end);
   if (
@@ -26,6 +31,9 @@ export function alignTimeline({ scope, observations, sliceMs = 60_000 }) {
       start: input.start,
       end: input.end,
       status: result.status,
+      ...(result.partial !== undefined
+        ? { partial: result.partial, query_coverage: result.query_coverage }
+        : {}),
     });
     for (const record of result.evidence || []) {
       const ms = parseTime(record.timestamp);
@@ -93,7 +101,7 @@ export function alignTimeline({ scope, observations, sliceMs = 60_000 }) {
   }
   return {
     status: events.length ? 'ok' : 'empty',
-    data_mode: 'synthetic_fixture',
+    data_mode: dataMode,
     scope,
     slice_ms: sliceMs,
     events,

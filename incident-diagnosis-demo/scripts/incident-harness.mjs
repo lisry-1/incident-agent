@@ -8,7 +8,7 @@ import {
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { listCases, query, validateQuery } from './incident-cli.mjs';
+import { listCases, query, validateQuery, parseTime } from './incident-cli.mjs';
 import { alignTimeline } from './incident-timeline.mjs';
 
 const argumentKeys = ['case', 'source', 'service', 'namespace', 'start', 'end'];
@@ -28,6 +28,8 @@ function plainObject(value) {
 // Model integration must route every incident tool call through dispatch().
 export class IncidentHarness {
   #stage;
+  #live;
+  #queue = Promise.resolve();
   #observations = [];
   #scope;
   #caseId;
@@ -48,18 +50,25 @@ export class IncidentHarness {
     failureLimit = 2,
     executeQuery = query,
     staged = false,
+    liveScope,
   } = {}) {
     const selected = listCases().find((entry) => entry.case_id === caseId);
-    if (!selected)
+    if (
+      liveScope &&
+      (!staged || caseId !== 'prometheus-lab' || executeQuery === query)
+    )
+      throw new Error('Live scope requires staged Prometheus executor.');
+    if (!selected && !liveScope)
       throw new Error('Unknown case: select a fixed fixture case.');
     if (
       ![maxAttempts, failureLimit].every((n) => Number.isInteger(n) && n > 0)
     ) {
       throw new Error('Attempt and failure limits must be positive integers.');
     }
+    this.#live = !!liveScope;
     this.#stage = staged ? 'probe' : 'classic';
     this.#caseId = caseId;
-    this.#scope = Object.freeze({ ...selected.scope });
+    this.#scope = Object.freeze({ ...(liveScope || selected.scope) });
     this.#execute = executeQuery;
     this.#maxAttempts = maxAttempts;
     this.#failureLimit = failureLimit;
@@ -92,7 +101,7 @@ export class IncidentHarness {
       run_id: this.#runId,
       sequence: ++this.#sequence,
       recorded_at: new Date().toISOString(),
-      data_mode: 'synthetic_fixture',
+      data_mode: this.#live ? 'live_lab' : 'synthetic_fixture',
       ...value,
       ...(this.#stage !== 'classic'
         ? { stage: this.#stage, available_tools: this.availableTools }
@@ -104,6 +113,43 @@ export class IncidentHarness {
   }
 
   dispatch(request) {
+    if (this.#live) throw new Error('Live queries require dispatchAsync.');
+    const iterator = this.#dispatch(request);
+    let step = iterator.next();
+    while (!step.done) {
+      try {
+        step = iterator.next(step.value());
+      } catch (error) {
+        step = iterator.throw(error);
+      }
+    }
+    return step.value;
+  }
+
+  dispatchAsync(request) {
+    // Snapshot before queueing: parallel tool calls cannot race stage or breaker state.
+    const snapshot = structuredClone(request);
+    const run = async () => {
+      const iterator = this.#dispatch(snapshot);
+      let step = iterator.next();
+      while (!step.done) {
+        let result;
+        try {
+          result = await step.value();
+        } catch (error) {
+          step = iterator.throw(error);
+          continue;
+        }
+        step = iterator.next(result);
+      }
+      return step.value;
+    };
+    const pending = this.#queue.then(run);
+    this.#queue = pending.catch(() => {});
+    return pending;
+  }
+
+  *#dispatch(request) {
     if (this.#fd === undefined) throw new Error('Harness is closed.');
     const attempt = ++this.#attempts;
     const deny = (code, message) =>
@@ -168,6 +214,7 @@ export class IncidentHarness {
           result = alignTimeline({
             scope: this.#scope,
             observations: this.#observations,
+            dataMode: this.#live ? 'live_lab' : 'synthetic_fixture',
           });
         } catch (error) {
           result = {
@@ -212,7 +259,14 @@ export class IncidentHarness {
       );
     }
     try {
-      const { start, end } = validateQuery(input);
+      const { start, end } = this.#live
+        ? { start: parseTime(input.start), end: parseTime(input.end) }
+        : validateQuery(input);
+      if (this.#live && (end - start < 35000 || end - start > 900000))
+        return deny(
+          'INVALID_WINDOW',
+          'Live window must span 35 seconds to 15 minutes.',
+        );
       if (
         start < Date.parse(this.#scope.start) ||
         end > Date.parse(this.#scope.end)
@@ -254,7 +308,7 @@ export class IncidentHarness {
     });
     let result;
     try {
-      result = this.#execute(input);
+      result = yield () => this.#execute(input);
       if (
         !result ||
         !['ok', 'empty', 'unavailable', 'error'].includes(result.status)
@@ -296,7 +350,9 @@ export class IncidentHarness {
         );
         // A successful probe with no threshold crossing is not proof of health.
         // It terminates collection in this run, retaining scope and gaps in the timeline.
-        const next = abnormal ? 'deep' : 'complete';
+        const incomplete =
+          this.#live && (result.partial || result.status === 'empty');
+        const next = abnormal ? 'deep' : incomplete ? 'probe' : 'complete';
         this.#record({
           type: 'stage_transition',
           from: this.#stage,
@@ -305,7 +361,9 @@ export class IncidentHarness {
           rule: 'observed http_5xx_ratio > 0.10',
           reason: abnormal
             ? 'threshold_crossed'
-            : 'no_threshold_crossing_observed',
+            : incomplete
+              ? 'insufficient_metrics'
+              : 'no_threshold_crossing_observed',
         });
         this.#stage = next;
         return {
@@ -314,7 +372,9 @@ export class IncidentHarness {
           available_tools: this.availableTools,
           next_step: abnormal
             ? 'Query logs, deployments, pod_events and traces, then build the timeline.'
-            : 'Report the limited observation; do not infer health from missing data. Build the timeline.',
+            : incomplete
+              ? 'Metrics are incomplete; report gaps. Do not infer health or retry blindly.'
+              : 'Report the limited observation; do not infer health from missing data. Build the timeline.',
         };
       }
     }

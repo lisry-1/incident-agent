@@ -8,7 +8,7 @@
 - Prometheus 每 5 秒抓取指标，适配器通过 /api/v1/query_range 查询。
 - 查询固定服务 checkout-api、namespace 标签 demo 和 PromQL 模板，限制 35 秒至 15 分钟的窗口、5 秒步长、请求超时、响应大小及返回数据范围。
 - 读到 NaN、无样本、单项失败时，保留缺失与 partial 标记；不会补零假装健康。
-- 本模块目前是独立数据源验证入口，尚未接入 Miniclaw 的分阶段工具。此前真实模型验证仍对应 synthetic_fixture。
+- 本模块已提供 Miniclaw 分阶段工具接入（见 [Runtime 接入](RUNTIME.md)）。此前已完成的真实模型验收仍对应 synthetic_fixture；live_lab 模型验收需另行执行。
 - Loki、Jaeger、Kubernetes 接入以及审批执行在后续阶段。这里的 namespace 是指标标签，还不是 Kubernetes 命名空间。
 
 本轮故障注入让 HTTP 请求返回 503，并引入可控处理延迟；没有真实数据库或连接池，不能称为复现了 DB_POOL_MAX 故障。直方图 p95 是估计值。
@@ -32,7 +32,7 @@ check 在 Prometheus 就绪且实际抓取 checkout 成功后返回 status=ready
 - checkout 健康检查：http://localhost:18080/health
 - Prometheus：http://localhost:19090
 
-宿主机端口绑定 127.0.0.1；容器使用内部网络。两个容器配置的内存上限合计 640 MiB，Docker 自身另有开销。本配置隔离的是实验服务网络，不是 Miniclaw Agent 的权限沙箱。
+宿主机端口绑定 127.0.0.1；容器使用普通 bridge 网络，可出站联网。两个容器配置的内存上限合计 640 MiB，Docker 自身另有开销。127.0.0.1 绑定限制宿主机入站访问；本配置不是 Miniclaw Agent 的权限沙箱。
 
 镜像：Prometheus v3.13.4（官方页面 2026-10-17 所列 LTS），Python 3.14-slim。Python 标签会随补丁更新，完全复现时应保存镜像 digest：
 
@@ -69,7 +69,7 @@ node incident-observability-lab/lab-cli.mjs capture
 - query_range 的 end 原本包含端点，适配器以 end−1ms 转换成 [start,end)。
 - rate 使用 30 秒回看。为了不读出授权窗，实际评估从请求 start+30s 开始；响应显式给出 evaluation_window。
 - 每项返回 query_coverage，记录 ok/empty/unavailable、NaN 等被省略样本与上游警告。整体 status=ok 只表示有证据；还必须检查 partial 和每条证据的 missing_metrics。
-- 当前适配器本身不具备前一版 Harness 的运行预算、失败熔断和 JSONL 决策日志；这些需在下一步异步 Runtime 集成中接入，不将独立 CLI 验证计作已完成 Agent 接入。
+- 独立适配器不提供运行预算、失败熔断和 JSONL 决策日志；Runtime 接入通过 IncidentHarness.dispatchAsync 提供这些保护，并串行处理并发工具请求。
 
 ## 验证与限制
 

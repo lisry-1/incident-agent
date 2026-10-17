@@ -57,4 +57,4 @@
 
 用户本地 run_id 49379826-04f3-4f59-9d1d-cb48677c79bb 已确认 probe→deep、四次深层查询和一次时间线生成，共八条合成证据。模型报告存在时间差计算错误、扩大 trace/pod 关联、将查询成功误称完整覆盖和提出超出固定窗口的查询建议；这些是报告评测待修项。
 
-新增 incident-observability-lab：真实 HTTP 故障注入服务、Prometheus Compose 配置及固定模板只读 HTTP 适配器。10 项适配器测试和3项本地 HTTP 应用测试通过；真实 Docker/Prometheus 集成与 Miniclaw 异步工具接入尚待验证或实现。namespace 此时只是指标标签，不能计作 Kubernetes 已接入。
+新增 incident-observability-lab：真实 HTTP 故障注入服务、Prometheus Compose 配置及固定模板只读 HTTP 适配器。10 项适配器测试和3项本地 HTTP 应用测试通过；真实 Docker/Prometheus 集成已由用户验证（run 010b9122-75d7-4ee2-9566-d01868127f93，336 次请求）。Miniclaw 异步接入已实现并通过保护与适配器测试，实际模型端到端验收待执行。namespace 此时只是指标标签，不能计作 Kubernetes 已接入。
