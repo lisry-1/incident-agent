@@ -3,3 +3,4 @@
 !package.json
 !package-lock.json
 !worker.mjs
+!model-state.mjs

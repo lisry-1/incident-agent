@@ -341,6 +341,19 @@ async function diagnose(model) {
           read_only: !m.RW,
         })),
       };
+      let worker;
+      try {
+        worker = JSON.parse(stdout.trim().split('\n').at(-1));
+      } catch {
+        worker = { error: 'Worker did not return a JSON report.' };
+      }
+      const reportFile = path.join(directory, 'last-worker-report.json');
+      writeFileSync(
+        reportFile,
+        JSON.stringify({ recorded_at: new Date().toISOString(), llm_called: model,
+          exit_code: code, isolation, worker, stderr }, null, 2) + '\n',
+        { mode: 0o600 },
+      );
       if (code !== 0)
         fail(
           'DIAGNOSIS_FAILED',
@@ -349,9 +362,8 @@ async function diagnose(model) {
       if (!gateway.proposal)
         fail(
           'PROPOSAL_MISSING',
-          'Worker did not create a pending proposal. No restart executed.',
+          `Worker did not create a pending proposal. ${worker.agent_error ?? worker.last_assistant?.error_message ?? worker.last_assistant?.stop_reason ?? worker.error ?? ''} Details: ${reportFile}. No restart executed.`,
         );
-      const worker = JSON.parse(stdout.trim().split('\n').at(-1));
       if (
         !isolation.network_none ||
         !isolation.root_read_only ||

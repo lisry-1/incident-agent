@@ -98,6 +98,10 @@ unset INCIDENT_APPROVAL_API_KEY
 
 若 key 未设置、模型没有完成提案、工具返回不足证据、socket 不可连接或隔离检测失败，流程明确失败并尝试恢复 healthy，不切回未隔离 Host 模式。
 
+v10.1 修复 Pi 在 prompt 开始时复制工具列表后的同步问题：通过 prepareNextTurnWithContext 在下一轮更新实际循环的工具列表，保留该循环的消息与系统提示。仅修改 agent.state.tools 不能更新已运行的循环。新增真实 Pi 离线回归，验证 probe→deep→propose 的实际工具执行；不调用模型。
+
+每轮 worker 报告（包括失败）保存在 data/incident-approval/last-worker-report.json；模型报告保留 stop_reason、error_message 与 agent_error，方便区分接口失败、正常提前结束和达到调用预算。没有提案仍然禁止执行，失败时尝试结束故障注入。该文件在 Git 忽略的私有目录中，不含真实 API key。
+
 ## 开发验证与实际验收边界
 
 开发环境通过 104 项 Node 测试、15 项 Python 测试、Runner 构建及既有 Pi Session 阶段检查。新增测试包括：签名/摘要篡改、伪造批准、跨提案复制、过期、并发/重放、未知执行结果持久化、固定执行参数、实例变化拒绝、管道输入拒绝，以及受限网关的范围、阶段和路由规则。应用实际子进程的 SIGTERM 正常退出已验证。

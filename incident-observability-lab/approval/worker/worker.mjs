@@ -1,6 +1,7 @@
 import { request, createServer } from 'node:http';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { connect } from 'node:net';
+import { nextToolContext, assistantDiagnostic } from './model-state.mjs';
 const config = JSON.parse(readFileSync('/ipc/session.json', 'utf8'));
 const socket = '/ipc/gateway.sock';
 async function call(route, value) {
@@ -259,12 +260,13 @@ if (!config.model) {
         maxTokens: 4096,
       }),
     toolExecution: 'sequential',
+    prepareNextTurnWithContext: nextToolContext(() => agent.state.tools),
     shouldStopAfterTurn: () => ++turns >= 8,
   });
   const outputs = [];
   agent.subscribe((e) => {
     if (e.type === 'message_end' && e.message.role === 'assistant')
-      outputs.push(e.message.content);
+      outputs.push(assistantDiagnostic(e.message));
   });
   const deadline = setTimeout(() => agent.abort(), 180000);
   try {
@@ -281,6 +283,8 @@ if (!config.model) {
       llm_called: true,
       boundary,
       turns,
+      agent_error: agent.state.errorMessage ?? null,
+      last_assistant: outputs.at(-1) ?? null,
       assistant_outputs: outputs,
     }),
   );
