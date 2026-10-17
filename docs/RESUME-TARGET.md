@@ -61,6 +61,12 @@
 
 ## Loki 日志实现进展
 
-新增本地 Loki 3.7.0、实验服务异步日志写入、固定 503 筛选的只读 LogQL 适配器，并通过 logs=true 接入已有 Harness/Pi/时间线。支持边界校验、纳秒原时间保留、200 条上限与截断标记。请求 ID 不伪装成 trace_id；未实现 Jaeger 或 Kubernetes。
+新增本地 Loki 3.7.0、实验服务异步日志写入、固定 503 筛选的只读 LogQL 适配器，并通过 logs=true 接入已有 Harness/Pi/时间线。支持边界校验、纳秒原时间保留、200 条上限与截断标记。请求 ID 与 trace_id 区分；Kubernetes 尚未实现。
 
-63 项 Node、7 项 Python 测试及原 Pi Session 9 项检查通过。实际 Loki 容器、请求 ID 完整对照实验、模型调用与审计验收待用户本地执行，不能计作已通过；日志写入队列为内存队列，失败可丢弃且有计数，不具备生产可靠投递保证。
+63 项 Node、7 项 Python 测试及原 Pi Session 9 项检查通过。用户实际 Loki 实验已通过（6d90760e-9212-4ad3-8a0b-e6c5ef921881，340 次请求、164 条日志、请求 ID 全部匹配）；模型审计已通过（75aacdae-f4e7-4e93-8253-f2945b376e2f，18 指标+164 日志=182 条合并证据）。日志写入队列为内存队列，失败可丢弃且有计数，不具备生产可靠投递保证。
+
+## Jaeger 实现进展（实际集成待验收）
+
+已实现真实请求的父/子 span 手工埋点、OTLP/HTTP 后台写入、Jaeger 2.22 Compose 配置、固定范围 v3 只读适配器。运行时只从本轮 Loki 观测选最多 8 条 trace_id，验证身份、时间及父子关系，保留抽样/失败覆盖信息，并接入 Pi 深层工具与时间线。此实验是单服务 HTTP 故障，不是数据库或多服务调用链。
+
+71 项 Node 测试、12 项 Python 测试、Runner 构建及 Pi Session 9 项检查通过；真实 Jaeger 容器与三源模型审计尚待验收。见 [Jaeger 集中验收](../incident-observability-lab/JAEGER.md)。后续仍需 Kubernetes、独立隔离与审批执行、固定模型评测，不能标记整个项目已完成。

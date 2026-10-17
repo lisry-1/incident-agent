@@ -8,6 +8,7 @@ import {
   validateLabBase,
 } from './prometheus-adapter.mjs';
 import { LokiLogsAdapter } from './loki-adapter.mjs';
+import { JaegerTracesAdapter } from './jaeger-adapter.mjs';
 
 const app = validateLabBase(
   process.env.INCIDENT_LAB_APP_URL || 'http://127.0.0.1:18080',
@@ -18,6 +19,9 @@ const prom = validateLabBase(
 const loki = validateLabBase(
   process.env.INCIDENT_LAB_LOKI_URL || 'http://127.0.0.1:13100',
 );
+const jaeger = validateLabBase(
+  process.env.INCIDENT_LAB_JAEGER_URL || 'http://127.0.0.1:16686',
+);
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 async function request(url, options = {}) {
   return fetch(url, {
@@ -26,7 +30,7 @@ async function request(url, options = {}) {
     signal: AbortSignal.timeout(5000),
   });
 }
-async function waitReady(withLogs = false) {
+async function waitReady(withLogs = false, withTraces = false) {
   let reason = 'startup';
   for (let i = 0; i < 30; i++) {
     try {
@@ -43,6 +47,15 @@ async function waitReady(withLogs = false) {
         const ok = logReady.ok;
         await logReady.body?.cancel();
         if (!ok) throw new Error('Loki is starting.');
+      }
+      if (withTraces) {
+        if (!appBody.trace_exporter?.enabled)
+          throw new Error(
+            'Checkout trace exporter is not enabled. Rebuild checkout.',
+          );
+        const ready = await request(new URL('/api/v3/services', jaeger));
+        if (!ready.ok) throw new Error('Jaeger query API is not ready.');
+        await ready.body?.cancel();
       }
       const ready = await request(new URL('/-/ready', prom));
       if (!ready.ok) throw new Error('Prometheus is starting.');
@@ -72,6 +85,7 @@ async function waitReady(withLogs = false) {
         checkout: 'healthy endpoint reachable',
         prometheus: 'ready',
         scrape_target_up: 1,
+        ...(withTraces ? { jaeger: 'ready', trace_exporter: 'enabled' } : {}),
         ...(withLogs ? { loki: 'ready', log_exporter: 'enabled' } : {}),
       };
     } catch (error) {
@@ -135,8 +149,11 @@ async function traffic(mode) {
     observation: await capture(),
   };
 }
-async function exercise(withLogs = false) {
-  await waitReady(withLogs);
+async function exercise(withLogs = false, withTraces = false) {
+  await waitReady(withLogs, withTraces);
+  const traceBefore = withTraces
+    ? (await (await request(new URL('/health', app))).json()).trace_exporter
+    : undefined;
   const exporterBefore = withLogs
     ? (await (await request(new URL('/health', app))).json()).log_exporter
     : undefined;
@@ -188,6 +205,32 @@ async function exercise(withLogs = false) {
       exporterAfter.pending === 0 &&
       exporterAfter.dropped === exporterBefore.dropped;
   }
+  let traces, traceAfter;
+  if (withTraces) {
+    const scope = fault.observation.scope;
+    const adapter = new JaegerTracesAdapter({ scope, baseUrl: jaeger.origin });
+    adapter.observeLogs(logs);
+    for (let attempt = 0; attempt < 10; attempt++) {
+      traces = await adapter.query(scope);
+      traceAfter = (await (await request(new URL('/health', app))).json())
+        .trace_exporter;
+      if (
+        traces.query_coverage?.traces.returned_traces === 8 &&
+        traceAfter.pending === 0
+      )
+        break;
+      await sleep(1000);
+    }
+    passed =
+      passed &&
+      traces.status === 'ok' &&
+      traces.evidence.length === 16 &&
+      traces.query_coverage.traces.returned_traces === 8 &&
+      traces.query_coverage.traces.failures.length === 0 &&
+      logs.evidence.every((e) => /^[a-f0-9]{32}$/.test(e.trace_id ?? '')) &&
+      traceAfter.pending === 0 &&
+      traceAfter.dropped === traceBefore.dropped;
+  }
   const directory = fileURLToPath(new URL('./runs/', import.meta.url));
   mkdirSync(directory, { recursive: true });
   const auditFile = path.join(directory, `${runId}.json`);
@@ -198,9 +241,18 @@ async function exercise(withLogs = false) {
         schema_version: 1,
         run_id: runId,
         recorded_at: new Date().toISOString(),
-        mode: withLogs
-          ? 'observability_lab_integration'
-          : 'prometheus_lab_integration',
+        ...(withTraces
+          ? {
+              traces,
+              trace_exporter_before: traceBefore,
+              trace_exporter_after: traceAfter,
+            }
+          : {}),
+        mode: withTraces
+          ? 'tracing_lab_integration'
+          : withLogs
+            ? 'observability_lab_integration'
+            : 'prometheus_lab_integration',
         llm_called: false,
         data_mode: 'live_lab',
         passed,
@@ -230,6 +282,14 @@ async function exercise(withLogs = false) {
         healthy_5xx_ratio: healthyLatest?.http_5xx_ratio ?? null,
         fault_5xx_ratio: faultLatest?.http_5xx_ratio ?? null,
         requests_generated: healthy.requests + fault.requests,
+        ...(withTraces
+          ? {
+              jaeger_spans: traces.evidence.length,
+              trace_coverage: traces.query_coverage?.traces,
+              trace_exporter_dropped_delta:
+                traceAfter.dropped - traceBefore.dropped,
+            }
+          : {}),
         ...(withLogs
           ? {
               loki_logs: logs.evidence.length,
@@ -253,7 +313,7 @@ async function exercise(withLogs = false) {
 async function main() {
   if (process.argv.length !== 3)
     throw new Error(
-      'Usage: node incident-observability-lab/lab-cli.mjs check|capture|exercise|check-logs|exercise-logs',
+      'Usage: node incident-observability-lab/lab-cli.mjs check|capture|exercise|check-logs|exercise-logs|check-traces|exercise-traces',
     );
   const command = process.argv[2];
   if (command === 'check')
@@ -263,10 +323,13 @@ async function main() {
   else if (command === 'exercise') await exercise();
   else if (command === 'check-logs')
     console.log(JSON.stringify(await waitReady(true), null, 2));
+  else if (command === 'check-traces')
+    console.log(JSON.stringify(await waitReady(true, true), null, 2));
+  else if (command === 'exercise-traces') await exercise(true, true);
   else if (command === 'exercise-logs') await exercise(true);
   else
     throw new Error(
-      'Unknown command. Use check, capture, exercise, check-logs or exercise-logs.',
+      'Unknown command. Use check, capture, exercise, check-logs, exercise-logs, check-traces or exercise-traces.',
     );
 }
 if (

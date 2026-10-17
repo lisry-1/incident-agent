@@ -25,7 +25,7 @@ docker compose -f incident-observability-lab/compose.yaml up -d --build
 node incident-observability-lab/lab-cli.mjs check-logs
 ```
 
-三个常驻服务：checkout、Prometheus、Loki；loki-volume-init 仅设置实验日志卷的 UID/GID，退出 0 属于预期。Loki 使用非 root 用户、独立可写数据卷，其端口只绑定 127.0.0.1:13100。实验 bridge 允许出站，不是 Agent 全局权限沙箱。Loki 当前无认证，仅用于本地实验。
+Loki 阶段使用 checkout、Prometheus、Loki；当前 Compose 另含 Jaeger，见 [链路接入](JAEGER.md)。loki-volume-init 仅设置实验日志卷的 UID/GID，退出 0 属于预期。Loki 使用非 root 用户、独立可写数据卷，其端口只绑定 127.0.0.1:13100。实验 bridge 允许出站，不是 Agent 全局权限沙箱。Loki 当前无认证，仅用于本地实验。
 
 Loki 镜像固定 grafana/loki:3.7.0，TSDB v13/本地文件系统；日志保留期设为 24h，实际删除由 compactor 异步执行，并非磁盘容量硬限制。Prometheus 保留 6h。重新构建 checkout 会重置其进程计数器，已有 Prometheus 卷保留历史。重建前的请求没有自动补写进新 Loki，必须运行新实验。
 
@@ -70,7 +70,7 @@ LOG_LEVEL=debug npm run dev:all
 
 ## 验证边界
 
-开发环境通过 63 项 Node 测试、7 项 Python 测试、Runner 构建、原 Pi Session 9 项检查。Loki 协议通过本地 HTTP 测试服务器验证；没有运行真实 Loki 容器，容器配置和真实模型双数据源验收仍需上述本地操作。Jaeger、Kubernetes 和审批执行尚未完成。
+Loki 阶段开发环境通过 63 项 Node 测试、7 项 Python 测试、Runner 构建、原 Pi Session 9 项检查。用户真实容器实验 6d90760e-9212-4ad3-8a0b-e6c5ef921881 已通过：340 次请求、164 条日志、全部故障请求 ID 匹配、无新增丢弃。模型审计 75aacdae-f4e7-4e93-8253-f2945b376e2f 核对通过：18 条指标、164 条日志、182 条时间线证据；指标 partial=true 被保留。Jaeger 后续进度见 [链路接入](JAEGER.md)，Kubernetes 和审批执行尚未完成。
 
 官方依据：
 

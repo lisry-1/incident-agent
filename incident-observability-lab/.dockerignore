@@ -3,3 +3,4 @@
 !Dockerfile
 
 !log_exporter.py
+!trace_exporter.py

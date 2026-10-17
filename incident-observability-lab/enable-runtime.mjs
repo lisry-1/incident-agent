@@ -10,9 +10,11 @@ try {
   if (!existsSync(workspace)) throw new Error('Workspace must already exist.');
   const audit = JSON.parse(readFileSync(process.argv[3], 'utf8'));
   if (
-    !['prometheus_lab_integration', 'observability_lab_integration'].includes(
-      audit.mode,
-    ) ||
+    ![
+      'prometheus_lab_integration',
+      'observability_lab_integration',
+      'tracing_lab_integration',
+    ].includes(audit.mode) ||
     audit.data_mode !== 'live_lab' ||
     audit.passed !== true
   )
@@ -23,12 +25,28 @@ try {
     (Date.parse(scope.end) - Date.parse(scope.start)) / 1000;
   if (!Number.isInteger(windowSeconds))
     throw new Error('Exercise window must use whole seconds.');
+  if (
+    audit.mode === 'tracing_lab_integration' &&
+    !(
+      audit.logs?.status === 'ok' &&
+      audit.logs.evidence?.length &&
+      audit.traces?.status === 'ok' &&
+      audit.traces.evidence?.length &&
+      audit.traces.query_coverage?.traces?.failures?.length === 0
+    )
+  )
+    throw new Error(
+      'Tracing audit must contain successful logs and validated spans.',
+    );
   const config = {
+    ...(audit.mode === 'tracing_lab_integration' ? { traces: true } : {}),
     case_id: 'prometheus-lab',
     workflow: 'staged',
     window_seconds: windowSeconds,
     end: scope.end,
-    ...(audit.mode === 'observability_lab_integration' &&
+    ...(['observability_lab_integration', 'tracing_lab_integration'].includes(
+      audit.mode,
+    ) &&
     audit.logs?.status === 'ok' &&
     audit.logs?.evidence?.length
       ? { logs: true }

@@ -157,6 +157,16 @@ export class LokiLogsAdapter {
             value.message.length > 1000
           )
             fail('INVALID_RESPONSE', 'Invalid lab request log schema.');
+          if (
+            (value.trace_id !== undefined || value.span_id !== undefined) &&
+            !(
+              typeof value.trace_id === 'string' &&
+              /^[a-f0-9]{32}$/.test(value.trace_id) &&
+              typeof value.span_id === 'string' &&
+              /^[a-f0-9]{16}$/.test(value.span_id)
+            )
+          )
+            fail('INVALID_RESPONSE', 'Invalid trace context in log.');
           const timestamp = new Date(Number(ns / 1000000n)).toISOString();
           if (value.timestamp !== timestamp)
             fail(
@@ -178,6 +188,9 @@ export class LokiLogsAdapter {
             status: 503,
             level: 'ERROR',
             request_id: value.request_id,
+            ...(value.trace_id
+              ? { trace_id: value.trace_id, span_id: value.span_id }
+              : {}),
             duration_ms: value.duration_ms,
             fault_injected: value.fault_injected,
             message: value.message,

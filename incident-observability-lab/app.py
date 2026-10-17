@@ -7,10 +7,12 @@ import uuid
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from log_exporter import LokiPublisher
+from trace_exporter import TracePublisher, request_spans
 
 LOCK = threading.Lock()
 LOG_LOCK = threading.Lock()
 LOGGER = None
+TRACER = None
 STATE = {"mode": "healthy", "200": 0, "503": 0, "sum": 0.0, "count": 0}
 BOUNDS = [0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0]
 BUCKETS = {b: 0 for b in BOUNDS}
@@ -51,16 +53,21 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == '/health':
             return self.respond(200, {'status': 'ok', 'data_mode': 'live_lab',
-                                      'log_exporter': LOGGER.snapshot() if LOGGER else {'enabled': False}})
+                                      'log_exporter': LOGGER.snapshot() if LOGGER else {'enabled': False},
+                                      'trace_exporter': TRACER.snapshot() if TRACER else {'enabled': False}})
         if self.path == '/metrics':
             return self.respond(200, metrics(), 'text/plain; version=0.0.4; charset=utf-8')
         if self.path != '/checkout':
             return self.respond(404, {'error': 'NOT_FOUND'})
+        start_ns = time.time_ns()
         start = time.monotonic()
+        trace_id, root_id, child_id = uuid.uuid4().hex, uuid.uuid4().hex[:16], uuid.uuid4().hex[:16]
         with LOCK:
             mode = STATE['mode']
         # Deliberately inject HTTP failures; this is not a real database pool.
+        child_start = time.time_ns()
         time.sleep(0.02 if mode == 'healthy' else 0.12)
+        child_end = time.time_ns()
         status = 200 if mode == 'healthy' else 503
         elapsed = time.monotonic() - start
         with LOCK:
@@ -80,11 +87,17 @@ class Handler(BaseHTTPRequestHandler):
                       'request_id': request_id, 'fault_injected': mode == 'fault',
                       'data_mode': 'live_lab', 'level': 'ERROR' if status == 503 else 'INFO',
                       'message': 'Injected HTTP 503 in local experiment' if status == 503 else 'Checkout request completed'}
+            if TRACER:
+                record.update(trace_id=trace_id, span_id=root_id)
             print(json.dumps(record), flush=True)
             if LOGGER:
                 LOGGER.emit(timestamp_ns, record)
         self.respond(status, {'status': 'ok' if status == 200 else 'injected_failure',
-                              'request_id': request_id, 'data_mode': 'live_lab'})
+                              'request_id': request_id, 'data_mode': 'live_lab',
+                              **({'trace_id': trace_id, 'span_id': root_id} if TRACER else {})})
+        if TRACER:
+            TRACER.emit(request_spans(trace_id, root_id, child_id, request_id, start_ns,
+                                      child_start, child_end, time.time_ns(), status))
 
     def do_POST(self):
         # Local operator-only experiment control. Not exposed as an Agent tool.
@@ -110,6 +123,9 @@ if __name__ == '__main__':
     if os.getenv('LOKI_PUSH_URL'):
         LOGGER = LokiPublisher(os.environ['LOKI_PUSH_URL'])
         LOGGER.start()
+    if os.getenv('OTLP_TRACES_URL'):
+        TRACER = TracePublisher(os.environ['OTLP_TRACES_URL'])
+        TRACER.start()
     server = ThreadingHTTPServer((os.getenv('LAB_BIND', '0.0.0.0'), int(os.getenv('LAB_PORT', '8080'))), Handler)
     server.daemon_threads = True
     server.serve_forever()

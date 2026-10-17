@@ -3,8 +3,11 @@ services:
   checkout:
     build: .
     environment:
+      OTLP_TRACES_URL: http://jaeger:4318/v1/traces
       LOKI_PUSH_URL: http://loki:3100/loki/api/v1/push
     depends_on:
+      jaeger:
+        condition: service_started
       loki:
         condition: service_started
     ports:
@@ -79,6 +82,19 @@ services:
     depends_on:
       loki-volume-init:
         condition: service_completed_successfully
+    networks: [lab]
+
+  jaeger:
+    image: cr.jaegertracing.io/jaegertracing/jaeger:2.22.0
+    user: '10001:10001'
+    ports: ['127.0.0.1:16686:16686']
+    read_only: true
+    tmpfs: ['/tmp:rw,noexec,nosuid,size=64m,mode=1777']
+    cap_drop: [ALL]
+    security_opt: ['no-new-privileges:true']
+    pids_limit: 128
+    mem_limit: 512m
+    cpus: 0.5
     networks: [lab]
 
 networks:
