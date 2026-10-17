@@ -1,3 +1,4 @@
+import { labJob } from './lab-target.mjs';
 import { createHash } from 'node:crypto';
 import { parseTime } from '../incident-diagnosis-demo/scripts/incident-cli.mjs';
 import { validateLabBase, readJson } from './prometheus-adapter.mjs';
@@ -15,13 +16,16 @@ export class LokiLogsAdapter {
   #base;
   #limit;
   #timeout;
+  #job;
   constructor({
     scope,
     baseUrl = 'http://127.0.0.1:13100',
     limit = 200,
     timeoutMs = 5000,
+    target = 'compose',
   }) {
     this.#base = validateLabBase(baseUrl);
+    this.#job = labJob(target);
     if (scope?.service !== 'checkout-api' || scope.namespace !== 'demo')
       fail('SCOPE_DENIED', 'Lab scope is checkout-api in demo.');
     const start = parseTime(scope.start),
@@ -76,7 +80,7 @@ export class LokiLogsAdapter {
       const url = new URL('/loki/api/v1/query_range', this.#base);
       // Loki end is exclusive; no subtraction or Number conversion of ns timestamps.
       url.search = new URLSearchParams({
-        query: LOG_QUERY,
+        query: LOG_QUERY.replace('job="checkout-lab"', `job="${this.#job}"`),
         start: String(startNs),
         end: String(endNs),
         direction: 'forward',
@@ -102,7 +106,7 @@ export class LokiLogsAdapter {
       let rawCount = 0;
       for (const stream of body.data.result) {
         if (
-          stream.stream?.job !== 'checkout-lab' ||
+          stream.stream?.job !== this.#job ||
           stream.stream.service !== input.service ||
           stream.stream.namespace !== input.namespace ||
           stream.stream.status !== '503' ||
@@ -167,6 +171,14 @@ export class LokiLogsAdapter {
             )
           )
             fail('INVALID_RESPONSE', 'Invalid trace context in log.');
+          if (
+            this.#job === 'checkout-k8s-lab' &&
+            (value.cluster !== 'incident-lab' ||
+              value.pod !== 'checkout-k8s' ||
+              typeof value.pod_uid !== 'string' ||
+              !/^[a-f0-9-]{36}$/.test(value.pod_uid))
+          )
+            fail('RESPONSE_SCOPE_MISMATCH', 'Missing Kubernetes pod identity.');
           const timestamp = new Date(Number(ns / 1000000n)).toISOString();
           if (value.timestamp !== timestamp)
             fail(
@@ -181,13 +193,20 @@ export class LokiLogsAdapter {
               .slice(0, 16)}`,
             timestamp,
             timestamp_ns: ns.toString(),
-            source: 'loki:checkout-lab:logs',
+            source: `loki:${this.#job}:logs`,
             data_mode: 'live_lab',
             service: scope.service,
             namespace: scope.namespace,
             status: 503,
             level: 'ERROR',
             request_id: value.request_id,
+            ...(this.#job === 'checkout-k8s-lab'
+              ? {
+                  cluster: value.cluster,
+                  pod: value.pod,
+                  pod_uid: value.pod_uid,
+                }
+              : {}),
             ...(value.trace_id
               ? { trace_id: value.trace_id, span_id: value.span_id }
               : {}),

@@ -70,3 +70,11 @@
 已实现真实请求的父/子 span 手工埋点、OTLP/HTTP 后台写入、Jaeger 2.22 Compose 配置、固定范围 v3 只读适配器。运行时只从本轮 Loki 观测选最多 8 条 trace_id，验证身份、时间及父子关系，保留抽样/失败覆盖信息，并接入 Pi 深层工具与时间线。此实验是单服务 HTTP 故障，不是数据库或多服务调用链。
 
 71 项 Node 测试、12 项 Python 测试、Runner 构建及 Pi Session 9 项检查通过；真实 Jaeger 容器与三源模型审计尚待验收。见 [Jaeger 集中验收](../incident-observability-lab/JAEGER.md)。后续仍需 Kubernetes、独立隔离与审批执行、固定模型评测，不能标记整个项目已完成。
+
+## Jaeger 实际验收与 Kubernetes 实现进展
+
+用户三源实验 5ac72002-8fef-4468-86e6-b833a7923dbb 已通过：336 次请求、160 条日志、8 条取样链路/16 个 span、无新增丢弃。真实模型审计已核对 18+160+16=194 条时间线证据，并保存 docs/evidence/prometheus-loki-jaeger-model-run.jsonl。原始父 span 120.880426ms、子 span 120.084195ms；模型表格抄错时间戳，缺失值和故障起点推断也需要纳入质量评测。工具验收通过不等于报告准确性已全部通过。
+
+新增同一 checkout 服务的 kind / Kubernetes 实验：独立 job、Downward API Pod UID、readiness 故障、短期 ServiceAccount token、固定 Pod 与命名空间只读 API、实际权限自检、Pod 历史 Event 与当前快照区分，并接入 Pi 和时间线。81 项 Node、14 项 Python 测试与 Runner 构建通过；真实集群、网络、RBAC、kubelet 事件及模型四源诊断待用户本地验收。参见 [集中验收](../incident-observability-lab/KUBERNETES.md)。
+
+后续仍需独立诊断隔离、Proposal / 人工审批 / 受控执行和固定模型评测；不把领域只读账号等同于全局 Host 只读沙箱。

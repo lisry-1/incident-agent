@@ -1,5 +1,6 @@
 """Bounded OTLP/HTTP JSON exporter for the local experiment; no durable queue."""
 import json
+import os
 import queue
 import threading
 import urllib.request
@@ -60,7 +61,9 @@ class TracePublisher:
 
     def push(self, spans):
         payload = json.dumps({'resourceSpans': [{'resource': {'attributes': attributes({
-            'service.name': 'checkout-api', 'service.namespace': 'demo'})},
+            'service.name': 'checkout-api', 'service.namespace': 'demo',
+            **({'k8s.pod.name': os.environ['POD_NAME'], 'k8s.pod.uid': os.environ['POD_UID'],
+                'k8s.cluster.name': 'incident-lab'} if os.getenv('LAB_JOB') == 'checkout-k8s-lab' else {})})},
             'scopeSpans': [{'scope': {'name': 'incident-lab', 'version': '1'}, 'spans': spans}]}]}).encode()
         for attempt in range(3):
             try:

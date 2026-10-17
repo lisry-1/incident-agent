@@ -30,6 +30,15 @@ class TraceTests(unittest.TestCase):
         root,child=self.payloads[0]['resourceSpans'][0]['scopeSpans'][0]['spans']
         self.assertEqual(child['parentSpanId'],root['spanId']);self.assertEqual(root['startTimeUnixNano'],'1000')
         self.assertEqual(root['kind'],2);self.assertEqual(root['status']['code'],2)
+    def test_kubernetes_resource_identity_is_carried_into_real_otlp_payload(self):
+        from unittest.mock import patch
+        with patch.dict('os.environ', {'LAB_JOB':'checkout-k8s-lab','POD_NAME':'checkout-k8s','POD_UID':'11111111-1111-4111-8111-111111111111'}):
+            self.assertTrue(self.p.push(self.spans))
+        attrs = {a['key']:a['value']['stringValue'] for a in self.payloads[0]['resourceSpans'][0]['resource']['attributes']}
+        self.assertEqual(attrs['k8s.pod.name'],'checkout-k8s')
+        self.assertEqual(attrs['k8s.pod.uid'],'11111111-1111-4111-8111-111111111111')
+        self.assertEqual(attrs['k8s.cluster.name'],'incident-lab')
+
     def test_partial_acceptance_is_not_retried_or_claimed_success(self):
         self.body={'partialSuccess':{'rejectedSpans':'1','errorMessage':'rejected'}}
         self.assertFalse(self.p.push(self.spans));self.assertEqual(len(self.payloads),1)

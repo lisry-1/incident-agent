@@ -9,9 +9,22 @@ import {
 } from './prometheus-adapter.mjs';
 import { LokiLogsAdapter } from './loki-adapter.mjs';
 import { JaegerTracesAdapter } from './jaeger-adapter.mjs';
+import {
+  KubernetesPodEventsAdapter,
+  checkReaderPermissions,
+} from './kubernetes-adapter.mjs';
+import { labJob } from './lab-target.mjs';
 
+const kubernetes = ['check-kubernetes', 'exercise-kubernetes'].includes(
+  process.argv[2],
+);
+const target = kubernetes ? 'kubernetes' : 'compose';
+const credentialFile = fileURLToPath(
+  new URL('../data/incident-k8s/reader.json', import.meta.url),
+);
 const app = validateLabBase(
-  process.env.INCIDENT_LAB_APP_URL || 'http://127.0.0.1:18080',
+  process.env.INCIDENT_LAB_APP_URL ||
+    (kubernetes ? 'http://127.0.0.1:18081' : 'http://127.0.0.1:18080'),
 );
 const prom = validateLabBase(
   process.env.INCIDENT_LAB_PROMETHEUS_URL || 'http://127.0.0.1:19090',
@@ -61,7 +74,13 @@ async function waitReady(withLogs = false, withTraces = false) {
       if (!ready.ok) throw new Error('Prometheus is starting.');
       await ready.body?.cancel();
       const target = new URL('/api/v1/query', prom);
-      target.searchParams.set('query', QUERIES.target_up);
+      target.searchParams.set(
+        'query',
+        QUERIES.target_up.replace(
+          'job="checkout-lab"',
+          `job="${labJob(kubernetes ? 'kubernetes' : 'compose')}"`,
+        ),
+      );
       const response = await request(target);
       const body = await response.json();
       if (
@@ -105,7 +124,11 @@ async function capture() {
     start: new Date(end - 120000).toISOString(),
     end: new Date(end).toISOString(),
   };
-  const adapter = new PrometheusMetricsAdapter({ scope, baseUrl: prom.origin });
+  const adapter = new PrometheusMetricsAdapter({
+    scope,
+    baseUrl: prom.origin,
+    target,
+  });
   return adapter.query(scope);
 }
 async function setMode(mode) {
@@ -142,7 +165,23 @@ async function traffic(mode) {
     }
     await sleep(1000);
   }
+  let podSnapshot;
+  if (kubernetes) {
+    const endMs = Date.now();
+    const scope = {
+      service: 'checkout-api',
+      namespace: 'demo',
+      start: new Date(endMs - 120000).toISOString(),
+      end: new Date(endMs).toISOString(),
+    };
+    const result = await new KubernetesPodEventsAdapter({
+      scope,
+      credentialFile,
+    }).query(scope);
+    podSnapshot = result.current_snapshot;
+  }
   return {
+    ...(kubernetes ? { pod_snapshot: podSnapshot } : {}),
     mode,
     requests: count,
     request_ids: requestIds,
@@ -158,7 +197,7 @@ async function exercise(withLogs = false, withTraces = false) {
     ? (await (await request(new URL('/health', app))).json()).log_exporter
     : undefined;
   const runId = randomUUID();
-  let healthy, fault;
+  let healthy, fault, restoredSnapshot;
   try {
     console.error('Healthy phase: generating requests for about 45 seconds...');
     healthy = await traffic('healthy');
@@ -168,6 +207,27 @@ async function exercise(withLogs = false, withTraces = false) {
     fault = await traffic('fault');
   } finally {
     await setMode('healthy');
+  }
+  if (kubernetes) {
+    for (let attempt = 0; attempt < 15; attempt++) {
+      const endMs = Date.now();
+      const scope = {
+        service: 'checkout-api',
+        namespace: 'demo',
+        start: new Date(endMs - 120000).toISOString(),
+        end: new Date(endMs).toISOString(),
+      };
+      const result = await new KubernetesPodEventsAdapter({
+        scope,
+        credentialFile,
+      }).query(scope);
+      restoredSnapshot = result.current_snapshot;
+      if (restoredSnapshot?.ready === 'True') break;
+      await sleep(1000);
+    }
+    // Include the observed recovery boundary so the last aggregate Event update
+    // cannot fall just beyond the historical query window.
+    fault.observation = await capture();
   }
   const healthyLatest = healthy.observation.evidence.at(-1);
   const faultLatest = fault.observation.evidence.at(-1);
@@ -181,7 +241,11 @@ async function exercise(withLogs = false, withTraces = false) {
   let logs, exporterAfter;
   if (withLogs) {
     const scope = fault.observation.scope;
-    const adapter = new LokiLogsAdapter({ scope, baseUrl: loki.origin });
+    const adapter = new LokiLogsAdapter({
+      scope,
+      baseUrl: loki.origin,
+      target,
+    });
     for (let attempt = 0; attempt < 20; attempt++) {
       exporterAfter = (await (await request(new URL('/health', app))).json())
         .log_exporter;
@@ -208,7 +272,11 @@ async function exercise(withLogs = false, withTraces = false) {
   let traces, traceAfter;
   if (withTraces) {
     const scope = fault.observation.scope;
-    const adapter = new JaegerTracesAdapter({ scope, baseUrl: jaeger.origin });
+    const adapter = new JaegerTracesAdapter({
+      scope,
+      baseUrl: jaeger.origin,
+      target,
+    });
     adapter.observeLogs(logs);
     for (let attempt = 0; attempt < 10; attempt++) {
       traces = await adapter.query(scope);
@@ -231,6 +299,39 @@ async function exercise(withLogs = false, withTraces = false) {
       traceAfter.pending === 0 &&
       traceAfter.dropped === traceBefore.dropped;
   }
+  let podEvents, rbac, healthySnapshot, faultSnapshot;
+  if (kubernetes) {
+    const scope = fault.observation.scope;
+    const adapter = new KubernetesPodEventsAdapter({ scope, credentialFile });
+    podEvents = await adapter.query(scope);
+    rbac = await checkReaderPermissions(credentialFile);
+    const uids = new Set(
+      [...logs.evidence, ...traces.evidence].map((e) => e.pod_uid),
+    );
+    // This query occurs after restore; its snapshot cannot describe the fault window.
+    const expectedUid = podEvents.current_snapshot?.pod_uid;
+    passed =
+      passed &&
+      rbac.passed &&
+      podEvents.status === 'ok' &&
+      !podEvents.partial &&
+      podEvents.evidence.some(
+        (e) =>
+          e.reason === 'Unhealthy' &&
+          e.type === 'Warning' &&
+          e.message.includes('503'),
+      ) &&
+      !!expectedUid &&
+      uids.size === 1 &&
+      uids.has(expectedUid);
+    healthySnapshot = healthy.pod_snapshot;
+    faultSnapshot = fault.pod_snapshot;
+    passed =
+      passed &&
+      healthySnapshot?.ready === 'True' &&
+      faultSnapshot?.ready === 'False' &&
+      restoredSnapshot?.ready === 'True';
+  }
   const directory = fileURLToPath(new URL('./runs/', import.meta.url));
   mkdirSync(directory, { recursive: true });
   const auditFile = path.join(directory, `${runId}.json`);
@@ -248,11 +349,29 @@ async function exercise(withLogs = false, withTraces = false) {
               trace_exporter_after: traceAfter,
             }
           : {}),
-        mode: withTraces
-          ? 'tracing_lab_integration'
-          : withLogs
-            ? 'observability_lab_integration'
-            : 'prometheus_lab_integration',
+        ...(kubernetes
+          ? {
+              pod_events: podEvents,
+              rbac,
+              workload: {
+                cluster: 'incident-lab',
+                pod: 'checkout-k8s',
+                pod_uid: podEvents.current_snapshot?.pod_uid,
+              },
+              phase_snapshots: {
+                healthy: healthySnapshot,
+                fault: faultSnapshot,
+                restored: restoredSnapshot,
+              },
+            }
+          : {}),
+        mode: kubernetes
+          ? 'kubernetes_lab_integration'
+          : withTraces
+            ? 'tracing_lab_integration'
+            : withLogs
+              ? 'observability_lab_integration'
+              : 'prometheus_lab_integration',
         llm_called: false,
         data_mode: 'live_lab',
         passed,
@@ -282,6 +401,24 @@ async function exercise(withLogs = false, withTraces = false) {
         healthy_5xx_ratio: healthyLatest?.http_5xx_ratio ?? null,
         fault_5xx_ratio: faultLatest?.http_5xx_ratio ?? null,
         requests_generated: healthy.requests + fault.requests,
+        ...(kubernetes
+          ? {
+              pod_events: podEvents.evidence.length,
+              kubernetes_query_partial: podEvents.partial,
+              rbac_passed: rbac.passed,
+              same_pod_uid_across_sources:
+                new Set(
+                  [
+                    ...logs.evidence,
+                    ...traces.evidence,
+                    ...podEvents.evidence,
+                  ].map((e) => e.pod_uid),
+                ).size === 1,
+              healthy_pod_ready: healthySnapshot?.ready,
+              fault_pod_ready: faultSnapshot?.ready,
+              restored_pod_ready: restoredSnapshot?.ready,
+            }
+          : {}),
         ...(withTraces
           ? {
               jaeger_spans: traces.evidence.length,
@@ -313,7 +450,7 @@ async function exercise(withLogs = false, withTraces = false) {
 async function main() {
   if (process.argv.length !== 3)
     throw new Error(
-      'Usage: node incident-observability-lab/lab-cli.mjs check|capture|exercise|check-logs|exercise-logs|check-traces|exercise-traces',
+      'Usage: node incident-observability-lab/lab-cli.mjs check|capture|exercise|check-logs|exercise-logs|check-traces|exercise-traces|check-kubernetes|exercise-kubernetes',
     );
   const command = process.argv[2];
   if (command === 'check')
@@ -325,11 +462,17 @@ async function main() {
     console.log(JSON.stringify(await waitReady(true), null, 2));
   else if (command === 'check-traces')
     console.log(JSON.stringify(await waitReady(true, true), null, 2));
+  else if (command === 'check-kubernetes') {
+    const ready = await waitReady(true, true);
+    const rbac = await checkReaderPermissions(credentialFile);
+    if (!rbac.passed) throw new Error('Reader RBAC checks failed.');
+    console.log(JSON.stringify({ ...ready, rbac }, null, 2));
+  } else if (command === 'exercise-kubernetes') await exercise(true, true);
   else if (command === 'exercise-traces') await exercise(true, true);
   else if (command === 'exercise-logs') await exercise(true);
   else
     throw new Error(
-      'Unknown command. Use check, capture, exercise, check-logs, exercise-logs, check-traces or exercise-traces.',
+      'Unknown command. Use check, capture, exercise, check-logs, exercise-logs, check-traces, exercise-traces, check-kubernetes or exercise-kubernetes.',
     );
 }
 if (

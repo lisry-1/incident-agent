@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: demo
+  labels:
+    incident-lab/cluster: incident-lab
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: incident-reader
+  namespace: demo
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: incident-reader
+  namespace: demo
+rules:
+  - apiGroups: ['']
+    resources: [pods]
+    resourceNames: [checkout-k8s]
+    verbs: [get]
+  - apiGroups: ['']
+    resources: [events]
+    verbs: [list]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: incident-reader
+  namespace: demo
+subjects:
+  - kind: ServiceAccount
+    name: incident-reader
+    namespace: demo
+roleRef:
+  kind: Role
+  name: incident-reader
+  apiGroup: rbac.authorization.k8s.io

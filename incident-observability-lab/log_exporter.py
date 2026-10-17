@@ -1,5 +1,6 @@
 """Small bounded in-memory Loki exporter for the local experiment (not a durable agent)."""
 import json
+import os
 import queue
 import threading
 import time
@@ -20,6 +21,9 @@ class LokiPublisher:
                 or url.path != '/loki/api/v1/push' or url.query or url.fragment
                 or url.username or url.password):
             raise ValueError('Loki exporter requires the trusted local push endpoint')
+        self.job = os.getenv('LAB_JOB', 'checkout-lab')
+        if self.job not in ('checkout-lab', 'checkout-k8s-lab'):
+            raise ValueError('Invalid lab job')
         self.endpoint = endpoint
         self.queue = queue.Queue(maxsize=capacity)
         self.lock = threading.Lock()
@@ -53,7 +57,7 @@ class LokiPublisher:
             groups.setdefault(status, []).append([timestamp, line])
         streams = []
         for status, values in groups.items():
-            streams.append({'stream': {'job': 'checkout-lab', 'service': 'checkout-api',
+            streams.append({'stream': {'job': self.job, 'service': 'checkout-api',
                                        'namespace': 'demo', 'status': status},
                             'values': sorted(values, key=lambda p: int(p[0]))})
         payload = json.dumps({'streams': streams}).encode()

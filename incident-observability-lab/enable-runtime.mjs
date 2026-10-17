@@ -14,6 +14,7 @@ try {
       'prometheus_lab_integration',
       'observability_lab_integration',
       'tracing_lab_integration',
+      'kubernetes_lab_integration',
     ].includes(audit.mode) ||
     audit.data_mode !== 'live_lab' ||
     audit.passed !== true
@@ -26,7 +27,9 @@ try {
   if (!Number.isInteger(windowSeconds))
     throw new Error('Exercise window must use whole seconds.');
   if (
-    audit.mode === 'tracing_lab_integration' &&
+    ['tracing_lab_integration', 'kubernetes_lab_integration'].includes(
+      audit.mode,
+    ) &&
     !(
       audit.logs?.status === 'ok' &&
       audit.logs.evidence?.length &&
@@ -38,15 +41,35 @@ try {
     throw new Error(
       'Tracing audit must contain successful logs and validated spans.',
     );
+  if (
+    audit.mode === 'kubernetes_lab_integration' &&
+    !(
+      audit.pod_events?.status === 'ok' &&
+      audit.rbac?.passed === true &&
+      audit.workload?.pod_uid
+    )
+  )
+    throw new Error(
+      'Kubernetes audit must contain Pod events, identity and passed RBAC verification.',
+    );
   const config = {
-    ...(audit.mode === 'tracing_lab_integration' ? { traces: true } : {}),
+    ...(audit.mode === 'kubernetes_lab_integration'
+      ? { kubernetes: true }
+      : {}),
+    ...(['tracing_lab_integration', 'kubernetes_lab_integration'].includes(
+      audit.mode,
+    )
+      ? { traces: true }
+      : {}),
     case_id: 'prometheus-lab',
     workflow: 'staged',
     window_seconds: windowSeconds,
     end: scope.end,
-    ...(['observability_lab_integration', 'tracing_lab_integration'].includes(
-      audit.mode,
-    ) &&
+    ...([
+      'observability_lab_integration',
+      'tracing_lab_integration',
+      'kubernetes_lab_integration',
+    ].includes(audit.mode) &&
     audit.logs?.status === 'ok' &&
     audit.logs?.evidence?.length
       ? { logs: true }

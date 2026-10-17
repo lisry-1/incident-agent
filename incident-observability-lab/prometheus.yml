@@ -9,3 +9,11 @@ scrape_configs:
         labels:
           service: checkout-api
           namespace: demo
+
+  - job_name: checkout-k8s-lab
+    scrape_timeout: 3s
+    static_configs:
+      - targets: ['incident-lab-control-plane:30080']
+        labels:
+          service: checkout-api
+          namespace: demo

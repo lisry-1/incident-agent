@@ -91,7 +91,7 @@ export function alignTimeline({
       });
     const ref = { evidence_id: event.evidence_id, source: event.source };
     slices.get(index).evidence.push(ref);
-    for (const field of ['trace_id', 'pod', 'version']) {
+    for (const field of ['trace_id', 'pod', 'pod_uid', 'version']) {
       if (typeof event[field] !== 'string' || !event[field]) continue;
       const key = `${field}\0${event[field]}`;
       if (!groups.has(key))

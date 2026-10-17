@@ -62,6 +62,20 @@ class AppTests(unittest.TestCase):
         self.assertEqual(self.fetch('/metrics')[0], 200)
         self.assertEqual(app.STATE['count'], before)
 
+    def test_readiness_reflects_fault_and_recovers_without_counting_requests(self):
+        before = app.STATE['count']
+        try:
+            self.fetch('/control/mode', {'mode': 'healthy'})
+            self.assertEqual(self.fetch('/ready')[0], 200)
+            self.fetch('/control/mode', {'mode': 'fault'})
+            self.assertEqual(self.fetch('/ready')[0], 503)
+            self.assertEqual(self.fetch('/health')[0], 200)
+            self.fetch('/control/mode', {'mode': 'healthy'})
+            self.assertEqual(self.fetch('/ready')[0], 200)
+            self.assertEqual(app.STATE['count'], before)
+        finally:
+            self.fetch('/control/mode', {'mode': 'healthy'})
+
     def test_control_rejects_unknown_modes_and_get_mutation(self):
         before = app.STATE['mode']
         self.assertEqual(self.fetch('/control/mode', {'mode': 'restart'})[0], 400)

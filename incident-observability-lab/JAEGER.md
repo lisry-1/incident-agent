@@ -50,7 +50,7 @@ node incident-observability-lab/enable-runtime.mjs data/groups/main incident-obs
 
 ## 当前验证状态
 
-开发环境通过 71 项 Node 测试、12 项 Python 测试、Runner 构建、Pi Session 9 项检查和 Prompt 引用检查。测试覆盖实际本地 HTTP exporter、v3 查询契约、异常响应、范围检查、有界取样，以及真实 Pi 工具适配器；没有调用模型。开发环境没有 Docker，真实 Jaeger 镜像启动与模型三数据源诊断仍待用户本地验收。
+开发环境通过 71 项 Node 测试、12 项 Python 测试、Runner 构建、Pi Session 9 项检查和 Prompt 引用检查。测试覆盖实际本地 HTTP exporter、v3 查询契约、异常响应、范围检查、有界取样，以及真实 Pi 工具适配器；没有调用模型。开发环境没有 Docker，此后的用户真实 Jaeger 实验与三源模型审计已核对：实验 5ac72002-8fef-4468-86e6-b833a7923dbb，336 请求、160 日志、8 条链路/16 span；模型时间线为 18+160+16=194 条。模型文字的时间戳抄写、缺失值和起点推断存在问题，仍需质量评测。后续 Kubernetes 进度见 [四源实验](KUBERNETES.md)。
 
 上一阶段 Loki 已由用户验证：实验 6d90760e-9212-4ad3-8a0b-e6c5ef921881（340 次请求，164 条日志，全部故障请求 ID 匹配、无新增丢弃）；模型审计 75aacdae-f4e7-4e93-8253-f2945b376e2f（18 条指标、164 条日志、182 条时间线证据）。这些记录不替代 Jaeger 验收。
 

@@ -1,3 +1,4 @@
+import { labJob } from './lab-target.mjs';
 import { createHash } from 'node:crypto';
 import { parseTime } from '../incident-diagnosis-demo/scripts/incident-cli.mjs';
 import { validateLabBase, readJson } from './prometheus-adapter.mjs';
@@ -43,8 +44,15 @@ export class JaegerTracesAdapter {
   #base;
   #timeout;
   #logs = [];
-  constructor({ scope, baseUrl = 'http://127.0.0.1:16686', timeoutMs = 5000 }) {
+  #job;
+  constructor({
+    scope,
+    baseUrl = 'http://127.0.0.1:16686',
+    timeoutMs = 5000,
+    target = 'compose',
+  }) {
     this.#base = validateLabBase(baseUrl);
+    this.#job = labJob(target);
     const start = parseTime(scope.start),
       end = parseTime(scope.end);
     if (scope.service !== 'checkout-api' || scope.namespace !== 'demo')
@@ -88,7 +96,7 @@ export class JaegerTracesAdapter {
     const contexts = new Map();
     for (const e of this.#logs) {
       if (
-        e.source !== 'loki:checkout-lab:logs' ||
+        e.source !== `loki:${this.#job}:logs` ||
         e.data_mode !== 'live_lab' ||
         e.service !== input.service ||
         e.namespace !== input.namespace ||
@@ -205,6 +213,16 @@ export class JaegerTracesAdapter {
           'RESPONSE_SCOPE_MISMATCH',
           'Returned trace resource is outside scope.',
         );
+      if (
+        this.#job === 'checkout-k8s-lab' &&
+        (resourceAttrs['k8s.pod.name'] !== context.pod ||
+          resourceAttrs['k8s.pod.uid'] !== context.pod_uid ||
+          resourceAttrs['k8s.cluster.name'] !== 'incident-lab')
+      )
+        fail(
+          'RESPONSE_SCOPE_MISMATCH',
+          'Span resource does not match observed Kubernetes pod.',
+        );
       if (!Array.isArray(resource.scopeSpans))
         fail('INVALID_RESPONSE', 'Missing span scopes.');
       for (const group of resource.scopeSpans) {
@@ -247,7 +265,7 @@ export class JaegerTracesAdapter {
             timestamp_ns: begin.toString(),
             end_timestamp_ns: finish.toString(),
             duration_ms: Number(finish - begin) / 1e6,
-            source: 'jaeger:checkout-lab:traces',
+            source: `jaeger:${this.#job}:traces`,
             data_mode: 'live_lab',
             service: input.service,
             namespace: input.namespace,
@@ -255,6 +273,13 @@ export class JaegerTracesAdapter {
             span_id: spanId,
             ...(parent ? { parent_span_id: parent } : {}),
             request_id: context.request_id,
+            ...(this.#job === 'checkout-k8s-lab'
+              ? {
+                  cluster: 'incident-lab',
+                  pod: context.pod,
+                  pod_uid: context.pod_uid,
+                }
+              : {}),
             operation: span.name,
             status: 'ERROR',
             http_status: 503,

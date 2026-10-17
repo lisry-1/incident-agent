@@ -55,6 +55,10 @@ class Handler(BaseHTTPRequestHandler):
             return self.respond(200, {'status': 'ok', 'data_mode': 'live_lab',
                                       'log_exporter': LOGGER.snapshot() if LOGGER else {'enabled': False},
                                       'trace_exporter': TRACER.snapshot() if TRACER else {'enabled': False}})
+        if self.path == '/ready':
+            with LOCK:
+                ready = STATE['mode'] == 'healthy'
+            return self.respond(200 if ready else 503, {'ready': ready, 'data_mode': 'live_lab'})
         if self.path == '/metrics':
             return self.respond(200, metrics(), 'text/plain; version=0.0.4; charset=utf-8')
         if self.path != '/checkout':
@@ -87,6 +91,8 @@ class Handler(BaseHTTPRequestHandler):
                       'request_id': request_id, 'fault_injected': mode == 'fault',
                       'data_mode': 'live_lab', 'level': 'ERROR' if status == 503 else 'INFO',
                       'message': 'Injected HTTP 503 in local experiment' if status == 503 else 'Checkout request completed'}
+            if os.getenv('LAB_JOB') == 'checkout-k8s-lab':
+                record.update(cluster='incident-lab', pod=os.environ['POD_NAME'], pod_uid=os.environ['POD_UID'])
             if TRACER:
                 record.update(trace_id=trace_id, span_id=root_id)
             print(json.dumps(record), flush=True)

@@ -1,3 +1,4 @@
+import { labJob } from './lab-target.mjs';
 import { createHash } from 'node:crypto';
 import { parseTime } from '../incident-diagnosis-demo/scripts/incident-cli.mjs';
 
@@ -59,8 +60,15 @@ export class PrometheusMetricsAdapter {
   #base;
   #scope;
   #timeout;
-  constructor({ scope, baseUrl = 'http://127.0.0.1:19090', timeoutMs = 5000 }) {
+  #job;
+  constructor({
+    scope,
+    baseUrl = 'http://127.0.0.1:19090',
+    timeoutMs = 5000,
+    target = 'compose',
+  }) {
     this.#base = validateLabBase(baseUrl);
+    this.#job = labJob(target);
     if (scope.service !== 'checkout-api' || scope.namespace !== 'demo')
       fail('SCOPE_DENIED', 'Lab scope is checkout-api in demo.');
     const start = parseTime(scope.start),
@@ -107,7 +115,11 @@ export class PrometheusMetricsAdapter {
     // stays inside policy. End is exclusive, while Prometheus API end is inclusive.
     const evalStart = start + 30000;
     const answers = await Promise.all(
-      Object.entries(QUERIES).map(async ([name, expression]) => {
+      Object.entries(QUERIES).map(async ([name, template]) => {
+        const expression = template.replaceAll(
+          'job="checkout-lab"',
+          `job="${this.#job}"`,
+        );
         try {
           const url = new URL('/api/v1/query_range', this.#base);
           url.search = new URLSearchParams({
@@ -232,7 +244,7 @@ export class PrometheusMetricsAdapter {
           .slice(0, 16)}`,
         timestamp: new Date(ms).toISOString(),
         ...fields,
-        source: 'prometheus:checkout-lab:metrics',
+        source: `prometheus:${this.#job}:metrics`,
         data_mode: 'live_lab',
         service: input.service,
         namespace: input.namespace,
