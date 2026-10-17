@@ -168,6 +168,15 @@ export class PiRuntimeAdapter implements AgentRuntime {
       sessionManager,
       settingsManager,
     });
-    return new PiRuntimeSession(session, eventBus);
+    try {
+      options.configureTools?.({
+        getActiveToolNames: () => session.getActiveToolNames(),
+        setActiveToolsByName: (names) => session.setActiveToolsByName(names),
+      });
+      return new PiRuntimeSession(session, eventBus);
+    } catch (error) {
+      session.dispose();
+      throw error;
+    }
   }
 }

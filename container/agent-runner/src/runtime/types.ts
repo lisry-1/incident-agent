@@ -107,6 +107,12 @@ export type RuntimeEvent =
 
 export type RuntimeEventListener = (event: RuntimeEvent) => void;
 
+/** Select registered tools for subsequent model turns; handlers enforce access too. */
+export type RuntimeToolController = {
+  getActiveToolNames(): string[];
+  setActiveToolsByName(names: string[]): void;
+};
+
 export type RuntimeSessionOptions = {
   cwd: string;
   sessionDir: string;
@@ -125,6 +131,8 @@ export type RuntimeSessionOptions = {
   excludedTools?: string[];
   /** Runtime-native custom tools. The Pi adapter accepts Pi ToolDefinitions. */
   customTools?: unknown[];
+  /** Optional session-local tool selection, initialized before the first prompt. */
+  configureTools?: (controller: RuntimeToolController) => void;
   /** Extra Agent Skills directories exposed through the runtime loader. */
   skillPaths?: string[];
   /** Extra extensions, including optional third-party adapters. */

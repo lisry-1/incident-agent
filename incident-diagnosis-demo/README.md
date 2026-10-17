@@ -2,6 +2,10 @@
 
 本目录提供合成故障数据、查询工具、IncidentHarness 和测试。当前分支已包含 Runtime 接入代码，使用当前分支时无需再次应用 integration/ 中的历史补丁。
 
+## 新增分阶段模式
+
+[分阶段模式说明与启用步骤](STAGED-WORKFLOW.md)。不指定 workflow 时继续使用原有查询模式；原有网页验证记录对应原模式。
+
 ## 运行方式
 
 从仓库根目录运行。已验证环境为 WSL2 Ubuntu、Node.js 24，以及已安装的根目录、web、container/agent-runner 三组 npm 依赖。首次安装参见根目录的上游安装说明；原生依赖编译需要 Python、make 和 C/C++ 编译器。
@@ -14,7 +18,7 @@ npm --prefix container/agent-runner run build
 node incident-diagnosis-demo/scripts/runtime-smoke.mjs
 ```
 
-查询与 Harness 测试共 21 项；适配器检查共 9 项。适配器检查直接调用实际 Pi 工具执行函数，使用临时工作区，不发起模型请求。
+查询、Harness、阶段和时间线测试共 41 项；适配器检查共 9 项。适配器检查直接调用实际 Pi 工具执行函数，使用临时工作区，不发起模型请求。
 
 独立演示仍可运行：
 

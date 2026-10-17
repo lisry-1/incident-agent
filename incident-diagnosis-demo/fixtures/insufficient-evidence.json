@@ -18,6 +18,8 @@
       }
     ],
     "logs": null,
-    "deployments": null
+    "deployments": null,
+    "pod_events": null,
+    "traces": null
   }
 }

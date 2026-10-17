@@ -351,6 +351,7 @@ async function runTurn(
           .join('\n\n'),
         allowedTools: DEFAULT_ALLOWED_TOOLS,
         customTools,
+        configureTools: incident.configureTools,
         provider: {
           endpointKind: provider.endpointKind,
           baseUrl: process.env.ANTHROPIC_BASE_URL,

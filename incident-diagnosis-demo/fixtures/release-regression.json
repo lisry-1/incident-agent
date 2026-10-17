@@ -38,7 +38,9 @@
         "timestamp": "2026-10-15T10:09:00Z",
         "level": "ERROR",
         "message": "checkout request returned HTTP 503 after DB_POOL_TIMEOUT",
-        "version": "v1.8.0"
+        "version": "v1.8.0",
+        "trace_id": "fixture-rel-checkout-1",
+        "pod": "checkout-v180-a"
       }
     ],
     "deployments": [
@@ -53,6 +55,38 @@
             "after": 3
           }
         }
+      }
+    ],
+    "pod_events": [
+      {
+        "evidence_id": "REL-P1",
+        "timestamp": "2026-10-15T10:05:00.125Z",
+        "pod": "checkout-v180-a",
+        "reason": "Started",
+        "message": "Container started with version v1.8.0",
+        "version": "v1.8.0"
+      },
+      {
+        "evidence_id": "REL-P2",
+        "timestamp": "2026-10-15T10:08:59.950Z",
+        "pod": "checkout-v180-a",
+        "reason": "Unhealthy",
+        "message": "Readiness probe returned 503",
+        "version": "v1.8.0"
+      }
+    ],
+    "traces": [
+      {
+        "evidence_id": "REL-T1",
+        "timestamp": "2026-10-15T10:08:58.200Z",
+        "trace_id": "fixture-rel-checkout-1",
+        "span_id": "db-acquire-1",
+        "pod": "checkout-v180-a",
+        "operation": "db.pool.acquire",
+        "duration_ms": 1800,
+        "status": "ERROR",
+        "error": "DB_POOL_TIMEOUT",
+        "version": "v1.8.0"
       }
     ]
   }
