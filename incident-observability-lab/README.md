@@ -1,5 +1,7 @@
 # 本地可观测性实验：Prometheus 接入
 
+当前总状态见 [集中验收](../docs/INCIDENT-ACCEPTANCE.md)。本文保留最初 Prometheus 子模块的准备与验证步骤；后续四源、隔离、审批及评测结果以集中验收为准。
+
 本轮目标：启动真实 HTTP 服务与 Prometheus，把实际处理的请求计数和耗时经 HTTP 查询适配器取回。数据标记 live_lab：流量和故障由实验脚本生成，不是生产业务数据，也不是读取预写 fixture JSON。
 
 ## 当前覆盖范围

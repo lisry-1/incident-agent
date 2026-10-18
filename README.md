@@ -1,43 +1,50 @@
-# Incident Agent · 服务故障诊断演示
+# Incident Agent · 可审计的本地故障诊断与受控处置
 
-基于 Miniclaw / Pi Runtime 改造的故障诊断 Agent：模型查询指标、日志和发布记录，引用证据生成故障时间线与原因假设；查询入口通过程序校验范围、限制重复失败，并追加 JSONL 审计记录。
+基于 HClaw / Miniclaw / Pi 改造的服务故障 Agent 演示。模型从指标探活进入深层排查，查询 Prometheus、Loki、Jaeger 和 Kubernetes，引用证据生成时间线与原因假设；独立诊断容器只能提出建议，重启或配置回滚必须经人工签名批准，再由固定执行器操作并验证结果。
 
-## 项目实现
+当前是**本地演示交付版**：四源查询、隔离模型诊断、人工审批重启与 Deployment 配置回滚均有本地实际运行记录。固定评测保留失败：v1.1 原自动结果 7/8；复核发现重复键漏检后，对同一原始回答离线复核为 **6/8**。模型纳秒比较错误和输出格式不稳定为已知限制。
 
-- **证据查询**：提供发布回归、上游超时、证据不足三组固定合成样例，返回带 `evidence_id` 的结构化结果。
-- **查询控制**：固定 case、service、namespace 和时间范围；默认每次运行最多 12 次请求，同一查询连续失败两次后停止重复执行。
-- **Runtime 接入**：在 Host 工作区按配置注册 `mcp__miniclaw__incident_query`，执行函数经过 IncidentHarness。
-- **审计**：先记录权限决定，再执行查询并记录结果；同一运行通过 `run_id` 和递增 `sequence` 关联。
+## 阅读入口
 
-## 分阶段排查更新
+- [复现与演示](docs/INCIDENT-DEMO.md)：先查看归档，再按需运行 fixture、live_lab、隔离诊断和审批流程。
+- [架构与权限](docs/INCIDENT-ARCHITECTURE.md)：Runtime、Harness、Broker、审批和执行器各自职责。
+- [证据与验收结果](docs/INCIDENT-ACCEPTANCE.md)：实际运行、自动评分、文字复核与适用边界。
+- [简历表述](docs/RESUME-TARGET.md) / [面试讲解](docs/INCIDENT-INTERVIEW.md)。
 
-新增可选 staged 模式：实际 Pi 工具列表从指标探活切换为深层排查，执行入口再次校验阶段；新增 Pod 事件和 trace 样例，程序按毫秒时间戳排序、按 60 秒窗口切片，并保留共享标识关联和查询覆盖信息。
+## 新增实现
 
-[启用分阶段模式及验收步骤](incident-diagnosis-demo/STAGED-WORKFLOW.md)。这一版本已通过无模型程序及真实 Pi Session 工具切换检查，新的网页模型流程已在本地完成，并核对 probe→deep、5 次数据查询和 1 次时间线执行；模型报告的计算与引用问题仍待修正。
+| 能力 | 具体行为 |
+| --- | --- |
+| 分阶段查询 | probe 指标 → 异常后开放 investigate / timeline；执行入口再次检查阶段 |
+| 查询保护 | 固定 case、service、namespace、时间范围；默认 12 次请求预算，含拒绝请求；同一查询失败两次后熔断 |
+| 证据处理 | 明确来源、ID、时间窗、缺失、截断及抽样；按时间排序、切片，保留 trace_id / pod_uid 关联 |
+| 四源适配器 | 固定 PromQL/LogQL/Jaeger/Kubernetes 路径、范围和响应边界；不允许模型传任意 URL、查询语言或 shell |
+| 独立诊断 | 非 root、只读根目录、network none；经 Unix socket Broker 获取证据与固定模型接口，无审批密钥或执行凭据 |
+| 人工处置 | Ed25519 提案/批准双签名，绑定目标、参数及证据摘要；动作前持久化一次性消费记录 |
+| 实测验证 | 重启检查实例/重启次数/Ready；回滚检查已批准模板、新 Pod Ready 与三次 HTTP 200 |
+| 固定评测 | 4 例 Pi/Harness 流程 + 4 例证据判断回放；保存原文、审计、评分、版本摘要及独立复核记录 |
 
-## 真实数据源接入进展
+Deployment 实验固定为 demo/checkout-release，两个启动配置共用同一镜像；它验证配置模板回滚。四源模型诊断与重启使用另一个实验 Pod checkout-k8s，两个流程分别验收，不合称同一条全自动处置链。
 
-新增 [Prometheus 本地实验环境与查询适配器](incident-observability-lab/README.md)，用于生成实际 HTTP 流量并查询抓取到的指标。本地容器实验已验证：336 次请求、正常 5xx=0、故障 5xx=1、恢复健康成功。已提供 [Miniclaw 异步工具接入](incident-observability-lab/RUNTIME.md)，纯指标真实模型验收已通过（18 条 PROM-*、probe→deep、时间线对齐）；[Loki 日志接入](incident-observability-lab/LOKI.md) 也已完成本地实验与模型审计核对（164 条日志、182 条合并证据）。现已实现 [Jaeger 链路接入](incident-observability-lab/JAEGER.md)，真实容器和三源模型审计已核对（18 条指标、160 条日志、16 个 span，时间线 194 条）。新增 [Kubernetes 同服务四源实验](incident-observability-lab/KUBERNETES.md)，只读 API、权限与 Runtime 程序验证通过，用户真实集群与四源模型审计已核对（199 条时间线证据）。新增 [独立诊断与人工审批重启](incident-observability-lab/APPROVAL.md)，独立容器隔离、真实模型提案、人工审批与一次重启已在本地实际验证；新增 [Deployment 配置回滚](incident-observability-lab/ROLLBACK.md)，代码与程序测试已通过，实际集群回滚待验收。
+## 快速检查
 
-## 已完成验证
+完成依赖安装后，在仓库根目录执行以下离线检查；不请求模型、不注入故障：
 
-| 验证层次 | 结果 | 覆盖范围 |
-| --- | --- | --- |
-| 查询、Harness、阶段与时间线程序测试 | 41 项通过 | 参数、范围、预算、熔断、审计、阶段转换、时间窗口及证据关联 |
-| 原模式 Pi 工具适配器测试 | 9 项通过 | 注册、执行、拒绝、释放；不调用模型 |
-| 分阶段 Pi Session 检查 | 9 项通过 | 真实 Session 初始化及工具切换、阶段拒绝、时间线；不调用模型 |
-| 真实模型正常查询 | 3 次查询成功，返回 5 条证据 | 网页对话生成带证据引用的诊断 |
-| 真实模型越界查询 | SCOPE_DENIED，tool_executed=false | production 请求在查询执行前被拒绝 |
+```bash
+node --test incident-diagnosis-demo/tests/*.test.mjs incident-observability-lab/tests/*.test.mjs incident-eval/tests/*.test.mjs
+npm --prefix container/agent-runner run build
+node incident-diagnosis-demo/scripts/staged-runtime-smoke.mjs
+```
 
-原模式真实模型验证于 2026-10-17（UTC+8）完成，查询数据均为 synthetic_fixture。以上是功能验证结果，尚未形成模型准确率或生产效率基准。
+真实环境准备与可选的付费模型调用见 [集中复现步骤](docs/INCIDENT-DEMO.md)。不同用例的程序测试通过，不等于模型回答通过。
 
-**[运行说明、复现提示词与证据索引](incident-diagnosis-demo/README.md)**
+## 来源与交付范围
 
-## 来源与实现边界
+基于 HClaw 的 Miniclaw 基线 e1ebc699ab96544a032eb09abd4fb0ee5e3a1251，保留上游许可证及下方说明。工作台、Pi Runtime、会话、通用工具、技能/MCP 基础设施来自上游。故障 fixture、领域查询控制、可观测性适配器、独立诊断、审批执行及固定评测由 Codex 辅助开发，并由项目维护者在 WSL2 本地操作验证。
 
-本项目基于 HClaw 仓库中的 Miniclaw 源码（基线 `e1ebc699ab96544a032eb09abd4fb0ee5e3a1251`），保留上游许可证。工作台、Pi Runtime、会话和工作区机制来自上游；新增故障样例、查询 Harness、工具注册及验证由 Codex 辅助开发，并在本地运行验证。
+synthetic_fixture 为固定合成数据；live_lab 为本地故障注入产生的实际观测，均不是生产事故。Miniclaw 原 Host 工作区保留通用工具，领域查询保护不等于整个 Host 沙箱。宿主机、Docker 管理员和 Broker/执行器代码是可信控制面。
 
-范围控制仅作用于新增的故障查询入口；Miniclaw 的其他工具仍然开放。fixture 演示与 live_lab 模式独立；后者已连接本地 Prometheus/Loki；Jaeger 也已完成本地验收；Kubernetes 也已完成真实集群与模型审计验收。独立诊断容器、人工审批重启与隔离模型流程已通过本地集成验收；Deployment 配置回滚仍待实际验收，原 Host 工具权限保持开放。
+此次交付不声称生产故障自动修复、生产诊断准确率、MTTR 提升、零风险或独立盲测通过。评测原始文件保持不变，Codex 的逐例复核与独立人工标注区分记录。
 
 ---
 

@@ -108,7 +108,7 @@ v10.1 修复 Pi 在 prompt 开始时复制工具列表后的同步问题：通�
 
 当前开发环境不允许 Unix socket bind，也没有 Docker。网关测试通过仅测试用的 127.0.0.1 临时 HTTP transport 运行相同处理逻辑；正式 CLI 固定使用 Unix socket，测试 transport 不由模型或 CLI 参数开放。用户随后已完成真实 Docker/WSL socket、隔离探测、executor RBAC、人工审批重启及隔离 Pi 模型验收，见下方更新；这些本地实验结果不等于生产运行保证。Miniclaw Host 与独立容器的验收记录分别保留。
 
-Deployment 配置回滚已实现但待真实集群验收；后续仍需本项目固定模型诊断准确率/安全评测，以及最终交付整理。参考作者的 MTTR、准确率或安全百分比不能直接使用。
+Deployment 配置回滚已完成用户本地实际验收；固定评测也已运行并保留失败与漏检修正。最新交付状态与边界见 [集中验收](../docs/INCIDENT-ACCEPTANCE.md)。参考作者的 MTTR、准确率或安全百分比不能直接使用。
 
 官方依据与本地 SDK 指导：
 

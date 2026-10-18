@@ -60,11 +60,11 @@ node incident-observability-lab/approval/release-cli.mjs restore
 
 此命令由操作者直接重新部署健康配置，属于结束实验，不计为已审批执行器成功。突然关闭终端/电脑时可能来不及清理，可以恢复后使用它。token 到期后重新运行 setup；该命令也会将实验配置部署为健康状态。
 
-## 开发检查与待验收
+## 开发检查与实际验收
 
 122 项 Node、16 项 Python 测试、Runner 构建通过；新增回滚检查包含错误历史/目标、签名与重放、原子 patch 条件、TLS API 请求、并发冲突、丢响应及 HTTP 恢复失败。应用独立进程已验证可由环境配置启动成真实 503。测试服务器和合成 Kubernetes 对象不是实际集群集成结果。
 
-当前开发环境没有 Docker，正式 Unix socket 也无法 bind；同处理逻辑的本地 HTTP 测试 transport 仅用于测试。v11 的真实 RBAC、Service proxy、Deployment 控制器回滚与隔离 worker 尚待用户本地验收。旧 v10 重启和模型验收不能替代 v11 回滚验收。通过后，本项目收尾范围剩固定评测与最终交付，不继续增加功能。
+当前开发环境没有 Docker，正式 Unix socket 也无法 bind；同处理逻辑的本地 HTTP 测试 transport 仅用于测试。用户已经在本地通过 v11 setup/exercise/approve/execute：提案 c177a358-0f93-4ae3-aa6e-ce62d5c56ddf 的真实 RBAC、Service proxy、独立 worker、人工签名及 Deployment 回滚均完成；回执 verified，revision 2→3，恢复已批准模板，新 Pod Ready，三次 HTTP 200。该证据是确定性实验，llm_called=false，保存于 docs/evidence/approval-rollback-run.json。固定模型评测及交付说明现已补齐，保留格式与时间比较失败；见 [集中验收](../docs/INCIDENT-ACCEPTANCE.md)。不继续增加业务功能。
 
 官方依据：
 
