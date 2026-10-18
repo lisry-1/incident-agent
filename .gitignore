@@ -79,3 +79,8 @@ nohup.out
 auth.json
 models.json
 .pi/
+
+# Personal career notes are maintained outside the public repository.
+/docs/RESUME-TARGET.md
+/docs/INCIDENT-INTERVIEW.md
+/private-notes/

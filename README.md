@@ -9,7 +9,6 @@
 - [复现与演示](docs/INCIDENT-DEMO.md)：先查看归档，再按需运行 fixture、live_lab、隔离诊断和审批流程。
 - [架构与权限](docs/INCIDENT-ARCHITECTURE.md)：Runtime、Harness、Broker、审批和执行器各自职责。
 - [证据与验收结果](docs/INCIDENT-ACCEPTANCE.md)：实际运行、自动评分、文字复核与适用边界。
-- [简历表述](docs/RESUME-TARGET.md) / [面试讲解](docs/INCIDENT-INTERVIEW.md)。
 
 ## 新增实现
 
